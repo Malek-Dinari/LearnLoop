@@ -1,0 +1,239 @@
+CHEMICAL BONDING AND MOLECULAR STRUCTURE
+A Complete Lesson in General Chemistry
+
+========================================
+SECTION 1: INTRODUCTION TO CHEMICAL BONDS
+========================================
+
+A chemical bond is a lasting attraction between atoms, ions, or molecules that enables the formation of chemical compounds. Atoms form bonds to achieve a more stable electron configuration, typically resembling that of the nearest noble gas. This drive toward stability is the fundamental reason why chemical bonds exist.
+
+There are three primary types of chemical bonds: ionic bonds, covalent bonds, and metallic bonds. Each type arises from different interactions between the valence electrons of the atoms involved. Understanding these bond types is essential for predicting the properties of materials, the shapes of molecules, and the behavior of substances in chemical reactions.
+
+The concept of valence electrons is central to bonding. Valence electrons are the electrons in the outermost energy level of an atom. For main group elements, the number of valence electrons corresponds to the group number in the periodic table. For example, sodium (Na) in Group 1 has one valence electron, while chlorine (Cl) in Group 17 has seven valence electrons.
+
+The octet rule states that atoms tend to gain, lose, or share electrons in order to have eight electrons in their valence shell. This rule applies well to elements in the second and third periods of the periodic table, though there are notable exceptions. Hydrogen follows a "duet rule," seeking only two electrons to fill its 1s orbital.
+
+
+========================================
+SECTION 2: IONIC BONDING
+========================================
+
+Ionic bonds form when one or more electrons are transferred from a metal atom to a nonmetal atom, creating oppositely charged ions that attract each other through electrostatic forces. This type of bonding typically occurs between elements with a large difference in electronegativity, generally greater than 1.7 on the Pauling scale.
+
+Consider the formation of sodium chloride (NaCl). Sodium has an electron configuration of 1s2 2s2 2p6 3s1. By losing its single valence electron, sodium achieves the stable configuration of neon (1s2 2s2 2p6) and becomes Na+ with a charge of +1. Chlorine has the configuration 1s2 2s2 2p6 3s2 3p5. By gaining one electron, chlorine achieves the stable configuration of argon and becomes Cl- with a charge of -1.
+
+The energy required to remove an electron from sodium is the ionization energy (495.8 kJ/mol for Na). The energy released when chlorine gains an electron is the electron affinity (-348.6 kJ/mol for Cl). While the ionization step is endothermic, the enormous lattice energy released when the ions arrange into a crystal structure (787 kJ/mol for NaCl) makes the overall process highly exothermic.
+
+Lattice energy is defined as the energy required to completely separate one mole of a solid ionic compound into gaseous ions. It can be estimated using the Born-Lande equation:
+
+    E = -(N_A * M * z+ * z- * e^2) / (4 * pi * epsilon_0 * r_0) * (1 - 1/n)
+
+where N_A is Avogadro's number, M is the Madelung constant (which depends on crystal geometry), z+ and z- are the charges on the ions, e is the elementary charge, r_0 is the distance between ion centers, and n is the Born exponent.
+
+Properties of ionic compounds include:
+- High melting and boiling points due to strong electrostatic forces
+- Brittleness in solid form (shifting ion layers causes like-charge repulsion)
+- Electrical conductivity when dissolved in water or melted (ions are free to move)
+- Solubility in polar solvents like water
+- Formation of crystalline lattice structures
+
+Common examples of ionic compounds include NaCl (table salt), CaF2 (fluorite), MgO (magnesia), and K2SO4 (potassium sulfate).
+
+
+========================================
+SECTION 3: COVALENT BONDING
+========================================
+
+Covalent bonds form when two nonmetal atoms share one or more pairs of electrons. Unlike ionic bonds, where electrons are transferred, covalent bonding involves the mutual attraction of both nuclei for the shared electron pair. The shared electrons spend most of their time in the region between the two nuclei, effectively "gluing" the atoms together.
+
+A single covalent bond involves the sharing of one pair of electrons (two electrons). A double bond involves two shared pairs (four electrons), and a triple bond involves three shared pairs (six electrons). Bond strength increases with bond order: a triple bond is stronger than a double bond, which is stronger than a single bond. Conversely, bond length decreases as bond order increases.
+
+Typical bond energies:
+- C-C single bond: 346 kJ/mol, bond length 1.54 angstroms
+- C=C double bond: 614 kJ/mol, bond length 1.34 angstroms
+- C triple bond C: 839 kJ/mol, bond length 1.20 angstroms
+
+Lewis structures are diagrams that show the bonding between atoms and the lone pairs of electrons in a molecule. To draw a Lewis structure:
+1. Count the total number of valence electrons from all atoms.
+2. Draw single bonds between all connected atoms (each bond uses 2 electrons).
+3. Distribute remaining electrons as lone pairs, starting with outer atoms.
+4. If the central atom lacks an octet, form double or triple bonds by converting lone pairs from outer atoms into bonding pairs.
+
+Formal charge helps determine the most likely Lewis structure when multiple structures are possible. Formal charge = (valence electrons) - (lone pair electrons) - (1/2 bonding electrons). The best Lewis structure minimizes formal charges and places any negative formal charges on the more electronegative atom.
+
+Polar covalent bonds occur when electrons are shared unequally between two atoms with different electronegativities. The more electronegative atom pulls the shared electrons closer, creating a partial negative charge (delta-), while the other atom has a partial positive charge (delta+). The degree of polarity is measured by the dipole moment, expressed in Debye units (D).
+
+Electronegativity values on the Pauling scale for common elements:
+- Fluorine: 4.0 (most electronegative element)
+- Oxygen: 3.5
+- Nitrogen: 3.0
+- Carbon: 2.5
+- Hydrogen: 2.1
+- Sodium: 0.9
+
+A bond is generally considered nonpolar covalent when the electronegativity difference is less than 0.5, polar covalent when the difference is between 0.5 and 1.7, and ionic when the difference exceeds 1.7.
+
+
+========================================
+SECTION 4: METALLIC BONDING
+========================================
+
+Metallic bonding occurs in metals and alloys. In this model, metal atoms release their valence electrons into a shared "sea of electrons" (also called a delocalized electron cloud) that surrounds a lattice of positively charged metal cations. The electrostatic attraction between the positive metal ions and the delocalized electrons holds the metal together.
+
+This model explains many characteristic properties of metals:
+- Electrical conductivity: Delocalized electrons can flow freely through the metal when a voltage is applied, carrying charge from one point to another.
+- Thermal conductivity: Free electrons can transfer kinetic energy rapidly through the metal.
+- Malleability and ductility: When a force is applied, layers of metal ions can slide past each other without breaking bonds because the electron sea adjusts to the new arrangement.
+- Metallic luster: Free electrons can absorb and re-emit photons of light across a wide range of wavelengths.
+- High melting points for transition metals: More valence electrons contribute to the electron sea, creating stronger metallic bonds. Tungsten (W) has a melting point of 3422 degrees Celsius.
+
+Band theory provides a more sophisticated explanation of metallic bonding. When many metal atoms combine, their atomic orbitals merge into continuous bands of energy levels. The valence band contains the highest-energy occupied electrons, while the conduction band contains the lowest-energy unoccupied levels. In metals, these bands overlap or are partially filled, allowing electrons to move freely. In insulators, there is a large band gap between the valence and conduction bands.
+
+
+========================================
+SECTION 5: VSEPR THEORY AND MOLECULAR GEOMETRY
+========================================
+
+The Valence Shell Electron Pair Repulsion (VSEPR) theory predicts the three-dimensional shape of molecules based on the principle that electron groups around a central atom will arrange themselves to minimize repulsion. An electron group can be a bonding pair, a lone pair, a double bond, or a triple bond.
+
+The steric number is the total number of electron groups around the central atom. It determines the electron geometry:
+
+Steric Number 2: Linear electron geometry, 180 degree bond angles
+    Example: BeCl2 (beryllium chloride), CO2 (carbon dioxide)
+
+Steric Number 3: Trigonal planar electron geometry, 120 degree bond angles
+    Example: BF3 (boron trifluoride), SO3 (sulfur trioxide)
+    With one lone pair: Bent/angular molecular geometry
+    Example: SO2 (sulfur dioxide), bond angle approximately 119 degrees
+
+Steric Number 4: Tetrahedral electron geometry, 109.5 degree bond angles
+    Example: CH4 (methane)
+    With one lone pair: Trigonal pyramidal molecular geometry
+    Example: NH3 (ammonia), bond angle approximately 107 degrees
+    With two lone pairs: Bent molecular geometry
+    Example: H2O (water), bond angle approximately 104.5 degrees
+
+Steric Number 5: Trigonal bipyramidal electron geometry, 90 and 120 degree bond angles
+    Example: PCl5 (phosphorus pentachloride)
+    With one lone pair: Seesaw (sawhorse) shape
+    Example: SF4 (sulfur tetrafluoride)
+    With two lone pairs: T-shaped
+    Example: ClF3 (chlorine trifluoride)
+    With three lone pairs: Linear
+    Example: XeF2 (xenon difluoride)
+
+Steric Number 6: Octahedral electron geometry, 90 degree bond angles
+    Example: SF6 (sulfur hexafluoride)
+    With one lone pair: Square pyramidal
+    Example: BrF5 (bromine pentafluoride)
+    With two lone pairs: Square planar
+    Example: XeF4 (xenon tetrafluoride)
+
+Lone pairs occupy more space than bonding pairs because they are held closer to the nucleus and spread over a larger volume. This is why bond angles decrease as the number of lone pairs increases: the water molecule's H-O-H angle is 104.5 degrees rather than the ideal tetrahedral angle of 109.5 degrees.
+
+
+========================================
+SECTION 6: HYBRIDIZATION
+========================================
+
+Hybridization is the concept of mixing atomic orbitals to form new hybrid orbitals suitable for bonding. The number and type of hybrid orbitals correspond to the steric number and geometry of the molecule.
+
+sp Hybridization (Steric Number 2):
+One s orbital and one p orbital combine to form two sp hybrid orbitals oriented 180 degrees apart (linear). The remaining two unhybridized p orbitals are available for pi bonding.
+Example: Acetylene (C2H2) has sp-hybridized carbon atoms with a triple bond (one sigma bond and two pi bonds).
+
+sp2 Hybridization (Steric Number 3):
+One s orbital and two p orbitals combine to form three sp2 hybrid orbitals oriented 120 degrees apart in a plane (trigonal planar). One unhybridized p orbital remains for pi bonding.
+Example: Ethylene (C2H4) has sp2-hybridized carbon atoms with a double bond (one sigma bond and one pi bond).
+
+sp3 Hybridization (Steric Number 4):
+One s orbital and three p orbitals combine to form four sp3 hybrid orbitals oriented 109.5 degrees apart (tetrahedral). No unhybridized p orbitals remain.
+Example: Methane (CH4) has an sp3-hybridized carbon atom with four equivalent C-H sigma bonds.
+
+sp3d Hybridization (Steric Number 5):
+One s, three p, and one d orbital combine to form five sp3d hybrid orbitals in a trigonal bipyramidal arrangement.
+Example: PCl5
+
+sp3d2 Hybridization (Steric Number 6):
+One s, three p, and two d orbitals combine to form six sp3d2 hybrid orbitals in an octahedral arrangement.
+Example: SF6
+
+Sigma bonds are formed by the head-on overlap of hybrid orbitals (or s orbitals in the case of hydrogen). Pi bonds are formed by the side-by-side overlap of unhybridized p orbitals. In a double bond, there is one sigma bond and one pi bond. In a triple bond, there is one sigma bond and two pi bonds.
+
+
+========================================
+SECTION 7: MOLECULAR ORBITAL THEORY
+========================================
+
+Molecular Orbital (MO) theory provides a more complete picture of bonding than Lewis structures or VSEPR theory. In MO theory, atomic orbitals combine to form molecular orbitals that are delocalized over the entire molecule. Each molecular orbital can hold a maximum of two electrons with opposite spins.
+
+When two atomic orbitals combine, they form two molecular orbitals:
+1. A bonding molecular orbital (lower energy): formed by constructive interference of the atomic orbital wave functions. Electron density is concentrated between the nuclei.
+2. An antibonding molecular orbital (higher energy): formed by destructive interference. Electron density is concentrated away from the region between nuclei. Antibonding orbitals are denoted with an asterisk (*).
+
+Bond order in MO theory = (number of electrons in bonding MOs - number of electrons in antibonding MOs) / 2
+
+For diatomic molecules of the second period:
+- The energy ordering of molecular orbitals for O2 and F2:
+  sigma(1s) < sigma*(1s) < sigma(2s) < sigma*(2s) < sigma(2p) < pi(2p) < pi*(2p) < sigma*(2p)
+
+- The energy ordering for Li2 through N2 (where sigma-pi crossover occurs):
+  sigma(1s) < sigma*(1s) < sigma(2s) < sigma*(2s) < pi(2p) < sigma(2p) < pi*(2p) < sigma*(2p)
+
+Example: Oxygen molecule (O2)
+O2 has 16 electrons total. Filling the MO diagram:
+sigma(1s)^2, sigma*(1s)^2, sigma(2s)^2, sigma*(2s)^2, sigma(2p)^2, pi(2p)^4, pi*(2p)^2
+
+Bond order = (10 - 6) / 2 = 2 (a double bond, consistent with Lewis structure)
+
+Notably, the two electrons in pi*(2p) occupy separate orbitals with parallel spins (Hund's rule), making O2 paramagnetic. This is a property that Lewis structures cannot predict but MO theory explains perfectly.
+
+Example: Diatomic nitrogen (N2)
+N2 has 14 electrons. Bond order = (10 - 4) / 2 = 3 (a triple bond).
+All electrons are paired, so N2 is diamagnetic.
+The triple bond makes N2 extremely stable, with a bond dissociation energy of 945 kJ/mol.
+
+
+========================================
+SECTION 8: INTERMOLECULAR FORCES
+========================================
+
+Intermolecular forces (IMFs) are attractions between molecules, as distinct from the intramolecular forces (bonds) within molecules. IMFs are generally much weaker than chemical bonds but critically determine physical properties like boiling point, melting point, viscosity, and solubility.
+
+London Dispersion Forces (Van der Waals forces):
+Present in ALL molecules. Arise from temporary, instantaneous dipoles caused by random fluctuations in electron distribution. The strength of London forces increases with molecular size (more electrons means larger temporary dipoles) and surface area. For example, n-pentane (boiling point 36 degrees C) has stronger London forces than neopentane (boiling point 9.5 degrees C) despite having the same molecular formula (C5H12), because n-pentane has a larger surface area for intermolecular contact.
+
+Dipole-Dipole Forces:
+Occur between polar molecules that have permanent dipole moments. The positive end of one molecule is attracted to the negative end of another. Dipole-dipole forces are stronger than London forces alone for molecules of similar size. For example, acetaldehyde (CH3CHO, boiling point 20 degrees C) has a higher boiling point than propane (C3H8, boiling point -42 degrees C) despite having a lower molecular weight, because acetaldehyde is polar.
+
+Hydrogen Bonding:
+A special, particularly strong type of dipole-dipole interaction that occurs when hydrogen is bonded to a highly electronegative atom (F, O, or N) and interacts with a lone pair on another F, O, or N atom. Hydrogen bonds have energies of about 10-40 kJ/mol, compared to about 2-10 kJ/mol for typical dipole-dipole interactions.
+
+Hydrogen bonding explains several anomalous properties:
+- Water has an unusually high boiling point (100 degrees C) compared to H2S (-60 degrees C), despite water having a lower molecular weight.
+- Ice is less dense than liquid water because hydrogen bonds create an open hexagonal lattice structure in ice.
+- DNA's double helix is held together by hydrogen bonds between complementary base pairs (A-T has 2 hydrogen bonds; G-C has 3 hydrogen bonds).
+- Proteins maintain their secondary structure (alpha helices and beta sheets) through hydrogen bonds between N-H and C=O groups in the peptide backbone.
+
+Ion-Dipole Forces:
+The strongest type of intermolecular force. Occurs between an ion and a polar molecule. Critical for the dissolution of ionic compounds in polar solvents. When NaCl dissolves in water, water molecules surround each Na+ ion with their oxygen atoms (partial negative charge) oriented toward the cation, and surround each Cl- ion with their hydrogen atoms oriented toward the anion. This process is called hydration.
+
+
+========================================
+SECTION 9: PRACTICE PROBLEMS
+========================================
+
+1. Determine the Lewis structure, molecular geometry, bond angles, and hybridization of the following molecules: (a) CCl4, (b) NH3, (c) H2CO, (d) XeF4
+
+2. Rank the following compounds in order of increasing boiling point and explain: CH4, CH3OH, NaCl, Ne
+
+3. Calculate the bond order of the following diatomic species using MO theory: O2, O2+, O2-, O2(2-)
+
+4. For each pair, identify which compound has the higher melting point and explain why:
+   (a) NaCl vs CsCl
+   (b) MgO vs NaCl
+   (c) NaF vs NaCl
+
+5. Explain why CO2 is a nonpolar molecule despite having two polar C=O bonds.
+
+6. Describe the bonding in benzene (C6H6) using both resonance structures and molecular orbital theory.

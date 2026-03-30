@@ -1,0 +1,399 @@
+DISCRETE-TIME SIGNAL PROCESSING AND DSP FUNDAMENTALS
+A Complete Lesson in Digital Signal Processing
+
+========================================
+SECTION 1: SIGNALS AND SYSTEMS OVERVIEW
+========================================
+
+A signal is a function that conveys information about a physical phenomenon. In digital signal processing (DSP), we work with discrete-time signals — sequences of numbers obtained by sampling continuous-time (analog) signals at regular intervals.
+
+A continuous-time signal x(t) is defined for every value of time t. A discrete-time signal x[n] is defined only at integer values of n, where n represents the sample index. The relationship between the two is:
+
+    x[n] = x_a(nT)
+
+where x_a(t) is the analog signal, T is the sampling period, and f_s = 1/T is the sampling frequency in Hertz (samples per second).
+
+Fundamental discrete-time signals include:
+
+Unit Impulse (Kronecker Delta):
+    delta[n] = 1 when n = 0, and 0 for all other n
+    This is the discrete-time equivalent of the Dirac delta function. Any discrete signal can be represented as a weighted sum of shifted impulses:
+    x[n] = sum from k=-infinity to +infinity of x[k] * delta[n - k]
+
+Unit Step:
+    u[n] = 1 when n >= 0, and 0 when n < 0
+    Relationship: u[n] = sum from k=0 to infinity of delta[n - k]
+
+Discrete-Time Complex Exponential:
+    x[n] = A * e^(j*omega_0*n)
+    where omega_0 is the discrete-time angular frequency in radians per sample, j is the imaginary unit, and A is the amplitude.
+
+A critical difference between continuous and discrete-time complex exponentials: the discrete-time version is periodic in frequency with period 2*pi. This means that frequencies omega_0 and omega_0 + 2*pi*k (for any integer k) produce identical sequences. The range of unique frequencies is therefore limited to an interval of length 2*pi, typically [-pi, pi] or [0, 2*pi].
+
+Discrete-time sinusoidal signals take the form:
+    x[n] = A * cos(omega_0 * n + phi)
+where A is amplitude, omega_0 is angular frequency in radians/sample, and phi is the phase offset. A discrete sinusoid is periodic with period N only if omega_0 / (2*pi) is a rational number, specifically omega_0 = 2*pi*k/N for some integer k.
+
+
+========================================
+SECTION 2: THE SAMPLING THEOREM
+========================================
+
+The Nyquist-Shannon Sampling Theorem is arguably the most important theorem in signal processing. It states:
+
+A bandlimited continuous-time signal with maximum frequency f_max can be perfectly reconstructed from its samples if and only if the sampling rate f_s satisfies:
+
+    f_s > 2 * f_max
+
+The minimum sampling rate 2*f_max is called the Nyquist rate. The frequency f_s/2 is called the Nyquist frequency or folding frequency.
+
+If the sampling rate is insufficient (f_s <= 2*f_max), a phenomenon called aliasing occurs. Aliasing causes high-frequency components above f_s/2 to "fold back" and appear as lower-frequency components in the sampled signal. This is irreversible — once aliasing occurs, the original high-frequency content cannot be recovered from the samples.
+
+Example: Consider sampling a 900 Hz sine wave at f_s = 1000 Hz. The Nyquist frequency is 500 Hz, and 900 Hz > 500 Hz. The aliased frequency is |900 - 1000| = 100 Hz. The sampled signal will appear identical to a 100 Hz sine wave. This is why anti-aliasing low-pass filters are applied before sampling in analog-to-digital converters (ADCs).
+
+Practical ADC systems use this pipeline:
+1. Anti-aliasing filter: Analog low-pass filter that attenuates frequencies above f_s/2
+2. Sample-and-hold circuit: Captures the analog voltage at each sampling instant
+3. Quantizer: Maps the continuous amplitude to a finite set of discrete levels
+4. Encoder: Converts the quantized value to a binary representation
+
+Quantization introduces quantization error (or quantization noise). For a B-bit uniform quantizer with step size Delta, the signal-to-quantization-noise ratio (SQNR) is approximately:
+
+    SQNR (dB) = 6.02 * B + 1.76
+
+This means each additional bit of resolution provides approximately 6 dB of dynamic range improvement. A 16-bit audio CD, for example, has a theoretical SQNR of approximately 98 dB.
+
+Perfect reconstruction from samples is achieved using ideal interpolation:
+    x_a(t) = sum from n=-infinity to +infinity of x[n] * sinc((t - nT) / T)
+
+where sinc(x) = sin(pi*x) / (pi*x). This sinc interpolation is impractical in real-time because the sinc function has infinite extent, so practical systems use approximations.
+
+
+========================================
+SECTION 3: DISCRETE-TIME LINEAR TIME-INVARIANT (LTI) SYSTEMS
+========================================
+
+A system transforms an input signal into an output signal. A system is linear if it satisfies both additivity and homogeneity (superposition principle):
+
+    T{a*x1[n] + b*x2[n]} = a*T{x1[n]} + b*T{x2[n]}
+
+A system is time-invariant (or shift-invariant) if a time shift in the input produces the same time shift in the output:
+
+    If y[n] = T{x[n]}, then T{x[n - n0]} = y[n - n0]
+
+An LTI system is completely characterized by its impulse response h[n], which is the output when the input is a unit impulse delta[n]. For any input x[n], the output of an LTI system is given by the convolution sum:
+
+    y[n] = x[n] * h[n] = sum from k=-infinity to +infinity of x[k] * h[n - k]
+
+Properties of convolution:
+- Commutative: x[n] * h[n] = h[n] * x[n]
+- Associative: x[n] * (h1[n] * h2[n]) = (x[n] * h1[n]) * h2[n]
+- Distributive: x[n] * (h1[n] + h2[n]) = x[n] * h1[n] + x[n] * h2[n]
+
+An LTI system is stable (bounded-input bounded-output, or BIBO stable) if and only if its impulse response is absolutely summable:
+
+    sum from n=-infinity to +infinity of |h[n]| < infinity
+
+An LTI system is causal if its impulse response satisfies h[n] = 0 for n < 0, meaning the output at any time depends only on current and past inputs.
+
+A very important class of LTI systems are those described by linear constant-coefficient difference equations (LCCDEs):
+
+    sum from k=0 to N of a_k * y[n-k] = sum from m=0 to M of b_m * x[n-m]
+
+When a_k = 0 for all k > 0 (no feedback), the system is a Finite Impulse Response (FIR) filter. When at least one a_k is nonzero for k > 0, the system is an Infinite Impulse Response (IIR) filter.
+
+
+========================================
+SECTION 4: THE Z-TRANSFORM
+========================================
+
+The Z-transform is the fundamental analysis tool for discrete-time signals and systems. It converts a sequence x[n] from the time domain to a complex function X(z) in the z-domain:
+
+    X(z) = sum from n=-infinity to +infinity of x[n] * z^(-n)
+
+where z is a complex variable. The Z-transform exists only for values of z where this sum converges, defining the Region of Convergence (ROC).
+
+Important Z-transform pairs:
+
+1. Unit impulse: delta[n] <-> 1, ROC: all z
+2. Unit step: u[n] <-> z / (z - 1) = 1 / (1 - z^(-1)), ROC: |z| > 1
+3. Exponential: a^n * u[n] <-> z / (z - a) = 1 / (1 - a*z^(-1)), ROC: |z| > |a|
+4. n * a^n * u[n] <-> a*z^(-1) / (1 - a*z^(-1))^2, ROC: |z| > |a|
+
+Key properties of the Z-transform:
+
+Linearity: a*x1[n] + b*x2[n] <-> a*X1(z) + b*X2(z)
+Time shift: x[n - n0] <-> z^(-n0) * X(z)
+Convolution: x[n] * h[n] <-> X(z) * H(z)
+Multiplication by n: n * x[n] <-> -z * dX(z)/dz
+
+The convolution property is particularly powerful: convolution in the time domain becomes simple multiplication in the z-domain. This means the output of an LTI system can be computed as:
+
+    Y(z) = H(z) * X(z)
+
+where H(z) is the transfer function (Z-transform of the impulse response).
+
+For a system described by a difference equation, the transfer function is:
+
+    H(z) = Y(z)/X(z) = (sum from m=0 to M of b_m * z^(-m)) / (sum from k=0 to N of a_k * z^(-k))
+
+This is a rational function of z that can be factored in terms of its zeros (roots of the numerator) and poles (roots of the denominator):
+
+    H(z) = (b_0 / a_0) * product(z - z_i) / product(z - p_j)
+
+System stability requires that all poles lie strictly inside the unit circle (|p_j| < 1 for all j) when the system is causal. The locations of poles and zeros in the z-plane provide immediate insight into the frequency response and behavior of the system.
+
+
+========================================
+SECTION 5: THE DISCRETE FOURIER TRANSFORM (DFT)
+========================================
+
+The Discrete-Time Fourier Transform (DTFT) of a sequence x[n] is:
+
+    X(e^(j*omega)) = sum from n=-infinity to +infinity of x[n] * e^(-j*omega*n)
+
+This is a continuous function of frequency omega, periodic with period 2*pi. While theoretically useful, the DTFT cannot be directly computed on a digital computer because it produces a continuous-frequency function from a potentially infinite-length sequence.
+
+The Discrete Fourier Transform (DFT) solves both problems. For a finite-length sequence x[n] of length N, the DFT is defined as:
+
+    X[k] = sum from n=0 to N-1 of x[n] * e^(-j*2*pi*k*n/N)    for k = 0, 1, ..., N-1
+
+The inverse DFT (IDFT) recovers the original sequence:
+
+    x[n] = (1/N) * sum from k=0 to N-1 of X[k] * e^(j*2*pi*k*n/N)    for n = 0, 1, ..., N-1
+
+The DFT produces N complex-valued frequency samples equally spaced around the unit circle. The frequency resolution of the DFT is:
+
+    Delta_f = f_s / N
+
+where f_s is the sampling rate and N is the DFT length. To achieve finer frequency resolution, increase N (by acquiring more data or by zero-padding).
+
+The twiddle factor W_N = e^(-j*2*pi/N) is used to write the DFT compactly:
+    X[k] = sum from n=0 to N-1 of x[n] * W_N^(kn)
+
+Properties of the DFT:
+- Linearity: DFT{a*x1[n] + b*x2[n]} = a*X1[k] + b*X2[k]
+- Circular time shift: DFT{x[(n - m) mod N]} = W_N^(mk) * X[k]
+- Circular convolution: Multiplication in the DFT domain corresponds to circular convolution in the time domain (NOT linear convolution)
+- Parseval's theorem: sum |x[n]|^2 = (1/N) * sum |X[k]|^2
+
+To perform linear convolution using the DFT (as needed for filtering), zero-pad both sequences to length L >= N1 + N2 - 1, where N1 and N2 are the lengths of the two sequences. This ensures circular convolution produces the same result as linear convolution.
+
+Spectral Leakage and Windowing:
+When analyzing a signal segment, abrupt truncation causes spectral leakage — energy from one frequency "leaks" into adjacent frequency bins. To reduce leakage, the signal is multiplied by a window function before computing the DFT.
+
+Common window functions and their characteristics:
+- Rectangular (no window): Narrowest main lobe (best frequency resolution), highest sidelobes (-13 dB)
+- Hamming: w[n] = 0.54 - 0.46*cos(2*pi*n/(N-1)), sidelobes at -43 dB
+- Hanning: w[n] = 0.5 - 0.5*cos(2*pi*n/(N-1)), sidelobes at -31 dB
+- Blackman: w[n] = 0.42 - 0.5*cos(2*pi*n/(N-1)) + 0.08*cos(4*pi*n/(N-1)), sidelobes at -58 dB
+- Kaiser: Parameterized by beta, allowing continuous trade-off between main lobe width and sidelobe level
+
+The trade-off is fundamental: reducing sidelobes (better spectral containment) always widens the main lobe (worse frequency resolution). There is no window that is optimal in both respects simultaneously.
+
+
+========================================
+SECTION 6: THE FAST FOURIER TRANSFORM (FFT)
+========================================
+
+Direct computation of the N-point DFT requires N^2 complex multiplications and N*(N-1) complex additions, giving O(N^2) computational complexity. For large N, this is prohibitively expensive.
+
+The Fast Fourier Transform (FFT) is a family of algorithms that compute the DFT in O(N*log2(N)) operations. The most famous is the Cooley-Tukey radix-2 decimation-in-time (DIT) algorithm, which requires N to be a power of 2.
+
+The key insight is the divide-and-conquer decomposition. An N-point DFT is split into two N/2-point DFTs:
+
+    X[k] = G[k] + W_N^k * H[k]         for k = 0, 1, ..., N/2 - 1
+    X[k + N/2] = G[k] - W_N^k * H[k]   for k = 0, 1, ..., N/2 - 1
+
+where G[k] is the N/2-point DFT of the even-indexed samples x[0], x[2], ..., x[N-2], and H[k] is the N/2-point DFT of the odd-indexed samples x[1], x[3], ..., x[N-1].
+
+This decomposition is applied recursively until we reach 2-point DFTs, which are trivial: X[0] = x[0] + x[1], X[1] = x[0] - x[1].
+
+The computational savings are dramatic:
+- N = 1024: DFT requires 1,048,576 multiplications; FFT requires 5,120 (205x speedup)
+- N = 4096: DFT requires 16,777,216; FFT requires 24,576 (683x speedup)
+- N = 1,048,576 (2^20): DFT requires ~10^12; FFT requires ~10^7 (100,000x speedup)
+
+Other FFT variants include:
+- Decimation-in-frequency (DIF): Splits the DFT by output rather than input
+- Radix-4 FFT: Splits into 4 sub-DFTs; slightly more efficient than radix-2
+- Split-radix FFT: Combines radix-2 and radix-4 for the lowest known operation count
+- Bluestein's algorithm (chirp-z transform): Computes DFTs of arbitrary length N using convolution
+- Prime factor algorithm (PFA): Efficient for N with small coprime factors
+
+The FFT is one of the most important algorithms in computing. It underpins audio processing, image processing, telecommunications, radar, medical imaging (MRI), spectral analysis, polynomial multiplication, and large-integer arithmetic.
+
+
+========================================
+SECTION 7: DIGITAL FILTER DESIGN
+========================================
+
+Digital filters modify the frequency content of a signal. They are classified by their frequency response characteristics:
+
+Low-pass filter: Passes frequencies below a cutoff frequency, attenuates frequencies above
+High-pass filter: Passes frequencies above a cutoff frequency, attenuates below
+Band-pass filter: Passes frequencies within a specified band
+Band-stop (notch) filter: Attenuates frequencies within a specified band
+All-pass filter: Passes all frequencies but modifies phase
+
+FIR (Finite Impulse Response) Filters:
+The output depends only on current and past inputs (no recursion):
+    y[n] = sum from k=0 to M of b_k * x[n-k]
+
+Advantages of FIR filters:
+- Always stable (no poles outside the unit circle, since there are no poles besides z=0)
+- Can be designed to have exactly linear phase, which preserves the shape of the signal
+- Simple to implement and analyze
+- No limit cycle oscillations in fixed-point implementations
+
+Linear phase is achieved when h[n] = h[M-n] (symmetric) or h[n] = -h[M-n] (antisymmetric). A linear-phase FIR filter has a group delay of M/2 samples.
+
+FIR Design Methods:
+1. Window method: Start with ideal (infinite-length) impulse response, truncate with a window function
+   - Ideal low-pass: h_d[n] = sin(omega_c * n) / (pi * n) (a sinc function)
+   - Apply window: h[n] = h_d[n] * w[n]
+   - Transition bandwidth is approximately 8*pi/(N+1) for a Hamming window
+
+2. Parks-McClellan (Remez exchange): Optimal equiripple design that minimizes the maximum error in passbands and stopbands. This is the gold standard for FIR filter design.
+
+3. Frequency sampling: Specify desired frequency response values at DFT sample points and take the inverse DFT.
+
+IIR (Infinite Impulse Response) Filters:
+The output depends on current/past inputs AND past outputs (recursion):
+    y[n] = sum from m=0 to M of b_m * x[n-m] - sum from k=1 to N of a_k * y[n-k]
+
+Advantages of IIR filters:
+- Can achieve sharp frequency transitions with much lower order than FIR
+- Fewer coefficients means less computation per sample
+- Good for emulating analog filter behavior
+
+Disadvantages:
+- Cannot achieve exactly linear phase
+- Can be unstable if poles are outside or on the unit circle
+- Susceptible to limit cycles and overflow in fixed-point arithmetic
+
+IIR Design by Analog Prototype:
+The standard approach designs an analog filter first, then converts to digital:
+
+1. Butterworth: Maximally flat magnitude response in the passband. No ripple. Slow roll-off.
+   |H(j*Omega)|^2 = 1 / (1 + (Omega/Omega_c)^(2N))
+
+2. Chebyshev Type I: Equiripple in the passband, monotonic in the stopband. Sharper transition than Butterworth for the same order.
+
+3. Chebyshev Type II: Monotonic in the passband, equiripple in the stopband.
+
+4. Elliptic (Cauer): Equiripple in both passband and stopband. Achieves the sharpest transition band for a given filter order. The optimal choice when minimum order is the priority.
+
+Analog-to-digital conversion methods:
+- Bilinear Transform: s = 2/T * (z-1)/(z+1). Maps the entire analog frequency axis to [-pi, pi]. Introduces frequency warping (nonlinear mapping), which must be pre-compensated. Preserves stability.
+- Impulse Invariance: h[n] = T * h_a(nT). Preserves the impulse response shape but causes aliasing for non-bandlimited analog filters. Only suitable for low-pass and band-pass designs.
+
+
+========================================
+SECTION 8: FILTER IMPLEMENTATION STRUCTURES
+========================================
+
+The same transfer function can be implemented using different computational structures, each with different properties regarding quantization effects, computational cost, and memory requirements.
+
+Direct Form I:
+Implements the difference equation directly. Requires M+N+1 multiplications, M+N additions, and M+N+1 delay elements per sample.
+
+Direct Form II (Canonical Form):
+Rearranges Direct Form I to share delay elements between the numerator and denominator sections. Requires only max(M,N) delay elements — the minimum possible for this transfer function. Structure:
+    w[n] = x[n] - sum from k=1 to N of a_k * w[n-k]
+    y[n] = sum from m=0 to M of b_m * w[n-m]
+
+Transposed Direct Form II:
+Reverses the signal flow graph of Direct Form II. Often preferred in practice because it has better numerical properties for floating-point arithmetic and allows pipelining.
+
+Cascade (Series) Form:
+Factors H(z) into a cascade of second-order sections (SOS), also called biquad sections:
+    H(z) = product of H_i(z)
+    where H_i(z) = (b_0i + b_1i*z^(-1) + b_2i*z^(-2)) / (1 + a_1i*z^(-1) + a_2i*z^(-2))
+
+This is the most widely used structure for IIR filters because:
+- Each second-order section is guaranteed stable if its poles are inside the unit circle
+- Coefficient quantization affects only a pair of poles/zeros at a time
+- Less sensitive to finite-precision effects than direct form
+- Easy to tune or modify individual sections
+
+Parallel Form:
+Performs partial fraction expansion of H(z) and implements each term separately, summing the outputs:
+    H(z) = A + sum of H_i(z)
+Useful when different frequency bands need independent processing.
+
+Lattice Structure:
+Used in speech coding, adaptive filtering, and linear prediction. The reflection coefficients (lattice parameters) have a useful property: the filter is stable if and only if all reflection coefficients have magnitude less than 1. This makes stability easy to guarantee during adaptation.
+
+
+========================================
+SECTION 9: PRACTICAL DSP APPLICATIONS
+========================================
+
+Audio Processing:
+Digital audio uses sampling rates of 44.1 kHz (CD quality), 48 kHz (professional audio), or 96/192 kHz (high-resolution audio). Bit depths are typically 16-bit (CD) or 24-bit (professional). Audio effects like equalization, reverb, chorus, and compression are implemented as digital filters. MP3 and AAC audio codecs use the Modified Discrete Cosine Transform (MDCT) to exploit psychoacoustic masking — removing frequency components that the human ear cannot perceive.
+
+Image Processing:
+2D signals (images) are processed using 2D convolution and 2D DFT. The 2D DFT is separable, meaning it can be computed as 1D DFTs along rows followed by 1D DFTs along columns. JPEG compression uses the 8x8 Discrete Cosine Transform (DCT) to transform spatial blocks into frequency coefficients, which are then quantized and entropy-coded.
+
+Telecommunications:
+Orthogonal Frequency Division Multiplexing (OFDM), used in WiFi (802.11a/g/n/ac/ax), 4G LTE, and 5G NR, is fundamentally based on the DFT/IDFT. The transmitter performs an IDFT to convert frequency-domain symbols to a time-domain signal, and the receiver performs a DFT to recover them. A cyclic prefix is added to convert linear convolution (by the channel) into circular convolution, enabling simple frequency-domain equalization.
+
+Radar and Sonar:
+Pulse compression using matched filtering (correlation) improves range resolution. The FFT enables efficient computation of cross-correlation via: R_xy[n] = IFFT{FFT{x[n]} * conj(FFT{y[n]})}. Doppler processing uses the DFT across multiple pulses to estimate target velocity.
+
+Biomedical Signal Processing:
+ECG (electrocardiogram) signals are filtered to remove 50/60 Hz power line interference using notch filters and baseline wander using high-pass filters. EEG signals are analyzed in frequency sub-bands (delta: 0.5-4 Hz, theta: 4-8 Hz, alpha: 8-13 Hz, beta: 13-30 Hz, gamma: 30-100 Hz) using the Short-Time Fourier Transform (STFT) or wavelet transforms.
+
+Adaptive Filtering:
+When the desired filter characteristics change over time or are unknown, adaptive filters adjust their coefficients automatically. The Least Mean Squares (LMS) algorithm updates filter weights using:
+
+    w[n+1] = w[n] + mu * e[n] * x[n]
+
+where mu is the step size, e[n] = d[n] - y[n] is the error signal, and x[n] is the input vector. Applications include noise cancellation (active noise control headphones), echo cancellation in telecommunications, and channel equalization.
+
+
+========================================
+SECTION 10: SUMMARY OF KEY RELATIONSHIPS
+========================================
+
+Time Domain -> Z-Domain -> Frequency Domain:
+    x[n] -> X(z) -> X(e^(j*omega)) [evaluate X(z) on unit circle z = e^(j*omega)]
+
+Convolution <-> Multiplication:
+    y[n] = x[n] * h[n] <-> Y(z) = X(z) * H(z) <-> Y(e^(j*omega)) = X(e^(j*omega)) * H(e^(j*omega))
+
+DFT Frequency Bins:
+    f_k = k * f_s / N    for k = 0, 1, ..., N-1
+    omega_k = 2*pi*k/N   for k = 0, 1, ..., N-1
+
+Stability (Causal LTI):
+    All poles of H(z) must be strictly inside the unit circle: |p_i| < 1
+
+Filter Order vs. Transition Width:
+    Sharper transitions require higher-order filters (more coefficients, more computation)
+
+Key Numerical Constants:
+    6.02 dB per bit of quantization resolution
+    FFT complexity: (N/2) * log2(N) complex multiplications for radix-2
+    CD audio: 44100 Hz sampling rate, 16-bit, 2 channels = 1.411 Mbps uncompressed
+
+
+========================================
+SECTION 11: PRACTICE PROBLEMS
+========================================
+
+1. A continuous-time signal contains frequency components at 200 Hz, 600 Hz, and 1500 Hz. What is the minimum sampling rate to avoid aliasing? If sampled at 2000 Hz, which components alias and to what frequencies?
+
+2. Compute the linear convolution of x[n] = {1, 2, 3} and h[n] = {1, 1, 1, 1} by hand. Verify using the DFT with appropriate zero-padding.
+
+3. Determine the transfer function H(z), poles, zeros, and ROC for the system:
+   y[n] = x[n] + 0.5*x[n-1] - 0.25*y[n-1]
+
+4. An N=8 point DFT of a real signal sampled at 8000 Hz. What frequency does each bin X[k] correspond to? Which bins contain redundant (conjugate symmetric) information?
+
+5. Design a moving average filter of length M=5: h[n] = 1/5 for n=0,1,2,3,4. Find its transfer function, plot its pole-zero diagram, and determine its frequency response magnitude. At what frequency is the first null?
+
+6. Explain why zero-padding a signal before taking its DFT does NOT improve true frequency resolution, even though it produces more frequency bins. What does it actually do?
+
+7. For a 12-bit ADC sampling at 48 kHz, calculate the theoretical SQNR in dB and the maximum frequency that can be represented without aliasing.
