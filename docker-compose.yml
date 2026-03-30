@@ -1,0 +1,27 @@
+# Docker Compose for future PostgreSQL integration
+version: "3.8"
+
+services:
+  # Placeholder for future database
+  # db:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: learnloop
+  #     POSTGRES_USER: learnloop
+  #     POSTGRES_PASSWORD: learnloop
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+# volumes:
+#   pgdata:
