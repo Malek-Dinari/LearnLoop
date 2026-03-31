@@ -110,10 +110,17 @@ export default function Home() {
   return (
     <div className="space-y-10">
       {/* Hero */}
-      <div className="text-center space-y-3 py-8">
-        <h1 className="text-5xl font-extrabold text-navy">
-          <span className="text-teal">Learn</span>Loop
-        </h1>
+      <div className="text-center space-y-4 py-8">
+        <div className="flex justify-center">
+          <img
+            src="/learnloop-logo-stacked.svg"
+            alt="LearnLoop"
+            width={220}
+            height={147}
+            style={{ height: "147px", width: "auto" }}
+            className="drop-shadow-md"
+          />
+        </div>
         <p className="text-lg text-gray-500 max-w-xl mx-auto">
           Upload a document or enter a topic to start learning with AI-generated quizzes
           and personalized coaching.
@@ -174,15 +181,15 @@ export default function Home() {
             </label>
             <input
               type="range"
-              min={5}
-              max={20}
+              min={2}
+              max={50}
               value={numQuestions}
               onChange={(e) => setNumQuestions(Number(e.target.value))}
               className="w-full accent-teal"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>5</span>
-              <span>20</span>
+              <span>2</span>
+              <span>50</span>
             </div>
           </div>
           <div>
