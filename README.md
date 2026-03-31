@@ -1,4 +1,4 @@
-<p align="center">
+<img width="956" height="866" alt="loading" src="https://github.com/user-attachments/assets/a719a2f2-904d-41d0-b330-dcac6fef6729" /><p align="center">
   <img src="figures/learnloop-logo-stacked.svg" alt="LearnLoop Logo" width="200">
 </p>
 
@@ -24,7 +24,7 @@
 
 | Home & Generation | Quiz Taking | Feedback & Grading |
 |:-:|:-:|:-:|
-| ![Generating quiz](figures/Screenshot%202026-03-30%20182959.png) | ![Quiz question](figures/Screenshot%202026-03-30%20181646.png) | ![Correct answer](figures/Screenshot%202026-03-30%20182702.png) |
+| ![Generating quiz](figures/loading.png) | ![Quiz question](figures/quiz_question.png) | ![Correct answer](figures/correct_answer.png) |
 
 ---
 
