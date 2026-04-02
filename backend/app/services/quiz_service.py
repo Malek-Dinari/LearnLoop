@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import logging
 import uuid
 
@@ -11,6 +12,7 @@ from app.prompts.question_gen import (
 )
 from app.prompts.grading import GRADING_SYSTEM, GRADING_USER, SUMMARY_SYSTEM, SUMMARY_USER
 from app.services.llm_service import llm_service, truncate_prompt
+from app.services.cache_service import cache, make_cache_key
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,20 @@ class QuizService:
         if question_types is None:
             question_types = ["mcq", "true_false", "short_answer"]
 
+        # Check cache first
+        content_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
+        cache_key = make_cache_key(
+            "quiz",
+            content_hash=content_hash,
+            num_questions=num_questions,
+            question_types=sorted(question_types),
+            source_type=source_type,
+        )
+        cached = await cache.get(cache_key)
+        if cached is not None:
+            logger.info(f"Cache HIT — returning {len(cached)} cached questions")
+            return cached
+
         # Build batch plan: chunks of batch_size, last batch gets the remainder
         batch_size = settings.quiz_batch_size
         batches = []
@@ -151,7 +167,13 @@ class QuizService:
                 seen.add(key)
                 unique.append(q)
 
-        return unique[:num_questions]
+        final = unique[:num_questions]
+
+        # Store in cache for future identical requests
+        await cache.set(cache_key, final, ttl=settings.cache_ttl_seconds)
+        logger.info(f"Cached {len(final)} questions (ttl={settings.cache_ttl_seconds}s)")
+
+        return final
 
     def create_quiz(self, questions: list[dict]) -> str:
         quiz_id = str(uuid.uuid4())

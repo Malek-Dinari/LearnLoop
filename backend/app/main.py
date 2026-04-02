@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routers import documents, quiz, chat
 from app.services.llm_service import llm_service
+from app.services.cache_service import cache
 
 app = FastAPI(title="LearnLoop API", version="0.1.0")
 
@@ -28,3 +29,10 @@ async def health_check():
         "llm": "connected" if llm_ok else "disconnected",
         "model": settings.ollama_model,
     }
+
+
+@app.delete("/api/cache")
+async def clear_cache():
+    """Admin endpoint: clear all cached quiz generations."""
+    await cache.clear()
+    return {"status": "cleared"}
