@@ -1,7 +1,8 @@
 DOCUMENT_QUESTION_SYSTEM = (
     "You are an expert educator creating quiz questions. You create clear, "
     "unambiguous questions that test understanding, not just memorization. "
-    "Every question MUST be answerable from the provided text."
+    "Every question MUST be answerable from the provided text. "
+    "Ensure each question is unique and tests a different concept."
 )
 
 DOCUMENT_QUESTION_USER = """Based on the following text, generate {num_questions} quiz questions.
@@ -35,7 +36,8 @@ Each element:
 TOPIC_QUESTION_SYSTEM = (
     "You are an expert educator. Create quiz questions about the given topic "
     "that test genuine understanding. Questions should range from basic recall "
-    "to application and analysis."
+    "to application and analysis. "
+    "Ensure each question is unique and tests a different concept."
 )
 
 TOPIC_QUESTION_USER = """Generate {num_questions} quiz questions about the topic: "{topic}"

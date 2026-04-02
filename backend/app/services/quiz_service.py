@@ -1,5 +1,8 @@
+import asyncio
+import logging
 import uuid
 
+from app.config import settings
 from app.prompts.question_gen import (
     DOCUMENT_QUESTION_SYSTEM,
     DOCUMENT_QUESTION_USER,
@@ -8,6 +11,8 @@ from app.prompts.question_gen import (
 )
 from app.prompts.grading import GRADING_SYSTEM, GRADING_USER, SUMMARY_SYSTEM, SUMMARY_USER
 from app.services.llm_service import llm_service, truncate_prompt
+
+logger = logging.getLogger(__name__)
 
 
 def _question_types_description(types: list[str]) -> str:
@@ -19,10 +24,82 @@ def _question_types_description(types: list[str]) -> str:
     return ", ".join(mapping.get(t, t) for t in types)
 
 
+def _normalize_question(q: dict, source_type: str, content: str) -> dict:
+    """Validate and normalize a raw question dict from the LLM."""
+    q_type = q.get("type", "mcq")
+    if q_type not in ["mcq", "true_false", "short_answer"]:
+        q_type = "mcq"
+
+    question = {
+        "id": str(uuid.uuid4()),
+        "type": q_type,
+        "question": q.get("question", ""),
+        "options": q.get("options"),
+        "correct_answer": str(q.get("correct_answer", "")),
+        "explanation": q.get("explanation", ""),
+        "source_chunk": content[:500] if source_type == "document" else None,
+        "difficulty": q.get("difficulty", "medium"),
+    }
+
+    if q_type == "true_false" and not question["options"]:
+        question["options"] = ["True", "False"]
+
+    if q_type == "mcq" and not question["options"]:
+        question["type"] = "short_answer"
+
+    return question
+
+
 class QuizService:
     def __init__(self):
         # quiz_id -> {questions, answers}
         self.quizzes: dict[str, dict] = {}
+
+    async def _generate_batch(
+        self,
+        content: str,
+        source_type: str,
+        batch_size: int,
+        question_types: list[str],
+        batch_index: int,
+    ) -> list[dict]:
+        """Generate a single batch of questions. Returns [] on failure."""
+        types_desc = _question_types_description(question_types)
+
+        try:
+            if source_type == "topic":
+                system = TOPIC_QUESTION_SYSTEM
+                safe_content = truncate_prompt(content, max_chars=500).replace("{", "{{").replace("}", "}}")
+                user = TOPIC_QUESTION_USER.format(
+                    num_questions=batch_size,
+                    topic=safe_content,
+                    question_types_description=types_desc,
+                )
+            else:
+                system = DOCUMENT_QUESTION_SYSTEM
+                safe_content = truncate_prompt(content).replace("{", "{{").replace("}", "}}")
+                user = DOCUMENT_QUESTION_USER.format(
+                    num_questions=batch_size,
+                    content=safe_content,
+                    question_types_description=types_desc,
+                )
+
+            raw = await llm_service.generate_json(user, system, temperature=0.3)
+
+            if isinstance(raw, dict) and "questions" in raw:
+                raw = raw["questions"]
+
+            if not isinstance(raw, list):
+                logger.warning(f"Batch {batch_index}: LLM returned non-list, got {type(raw)}")
+                return []
+
+            questions = [_normalize_question(q, source_type, content) for q in raw[:batch_size]]
+            logger.info(f"Batch {batch_index}: generated {len(questions)} questions")
+            return questions
+
+        except Exception as exc:
+            logger.warning(f"Batch {batch_index} failed: {exc}")
+            return []
 
     async def generate_questions(
         self,
@@ -34,62 +111,47 @@ class QuizService:
         if question_types is None:
             question_types = ["mcq", "true_false", "short_answer"]
 
-        types_desc = _question_types_description(question_types)
+        # Build batch plan: chunks of batch_size, last batch gets the remainder
+        batch_size = settings.quiz_batch_size
+        batches = []
+        remaining = num_questions
+        while remaining > 0:
+            size = min(batch_size, remaining)
+            batches.append(size)
+            remaining -= size
 
-        if source_type == "topic":
-            system = TOPIC_QUESTION_SYSTEM
-            # Escape any braces in topic text before .format()
-            safe_content = content.replace("{", "{{").replace("}", "}}")
-            user = TOPIC_QUESTION_USER.format(
-                num_questions=num_questions,
-                topic=safe_content,
-                question_types_description=types_desc,
-            )
-        else:
-            system = DOCUMENT_QUESTION_SYSTEM
-            # Escape braces in document content to prevent .format() errors
-            safe_content = truncate_prompt(content).replace("{", "{{").replace("}", "}}")
-            user = DOCUMENT_QUESTION_USER.format(
-                num_questions=num_questions,
-                content=safe_content,
-                question_types_description=types_desc,
-            )
+        logger.info(f"Generating {num_questions} questions in {len(batches)} batches: {batches}")
 
-        raw_questions = await llm_service.generate_json(user, system, temperature=0.3)
+        # Run all batches in parallel — Ollama queues them internally
+        results = await asyncio.gather(
+            *[
+                self._generate_batch(content, source_type, size, question_types, i)
+                for i, size in enumerate(batches)
+            ],
+            return_exceptions=True,
+        )
 
-        if isinstance(raw_questions, dict) and "questions" in raw_questions:
-            raw_questions = raw_questions["questions"]
+        # Collect successful questions, skip exceptions
+        all_questions: list[dict] = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.warning(f"Batch {i} raised exception: {result}")
+            elif isinstance(result, list):
+                all_questions.extend(result)
 
-        questions = []
-        for q in raw_questions[:num_questions]:
-            # Validate and normalize
-            q_type = q.get("type", "mcq")
-            if q_type not in ["mcq", "true_false", "short_answer"]:
-                q_type = "mcq"
+        if not all_questions:
+            raise RuntimeError("All question generation batches failed. Check Ollama connectivity.")
 
-            question = {
-                "id": str(uuid.uuid4()),
-                "type": q_type,
-                "question": q.get("question", ""),
-                "options": q.get("options"),
-                "correct_answer": str(q.get("correct_answer", "")),
-                "explanation": q.get("explanation", ""),
-                "source_chunk": content[:500] if source_type == "document" else None,
-                "difficulty": q.get("difficulty", "medium"),
-            }
+        # Deduplicate by question text
+        seen: set[str] = set()
+        unique: list[dict] = []
+        for q in all_questions:
+            key = q["question"].strip().lower()
+            if key and key not in seen:
+                seen.add(key)
+                unique.append(q)
 
-            # Ensure T/F has proper options
-            if q_type == "true_false" and not question["options"]:
-                question["options"] = ["True", "False"]
-
-            # Ensure MCQ has options
-            if q_type == "mcq" and not question["options"]:
-                q_type = "short_answer"
-                question["type"] = "short_answer"
-
-            questions.append(question)
-
-        return questions
+        return unique[:num_questions]
 
     def create_quiz(self, questions: list[dict]) -> str:
         quiz_id = str(uuid.uuid4())
@@ -107,11 +169,9 @@ class QuizService:
         correct = question["correct_answer"]
 
         if q_type in ("mcq", "true_false"):
-            # Normalize for comparison
             user_norm = user_answer.strip().lower()
             correct_norm = correct.strip().lower()
 
-            # Handle "A) answer" format - check both full match and letter prefix
             is_correct = (
                 user_norm == correct_norm
                 or user_norm in correct_norm
@@ -125,7 +185,7 @@ class QuizService:
                 "correct_answer": correct,
             }
         else:
-            # Short answer - use LLM
+            # Short answer — use LLM
             prompt = GRADING_USER.format(
                 question=question["question"].replace("{", "{{").replace("}", "}}"),
                 correct_answer=correct.replace("{", "{{").replace("}", "}}"),
@@ -140,7 +200,6 @@ class QuizService:
                     "correct_answer": correct,
                 }
             except Exception:
-                # Fallback to simple comparison
                 is_correct = user_answer.strip().lower() == correct.strip().lower()
                 return {
                     "is_correct": is_correct,
