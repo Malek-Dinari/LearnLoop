@@ -39,13 +39,79 @@ export default function Home() {
     }
   };
 
-  // ─── GENERATING ────────────────────────────────────────────
+  // ─── GENERATING (uploading document / fetching results) ───
   if (quiz.state === "GENERATING") {
     return (
       <div className="flex flex-col items-center justify-center py-32 space-y-4">
         <Loader2 size={48} className="animate-spin text-teal" />
-        <p className="text-lg font-medium text-navy">Generating your quiz...</p>
+        <p className="text-lg font-medium text-navy">Preparing your quiz...</p>
         <p className="text-sm text-gray-400">This may take a moment while the AI crafts questions</p>
+      </div>
+    );
+  }
+
+  // ─── STREAMING — progressive question display ──────────────
+  if (quiz.state === "STREAMING") {
+    const received = quiz.streamProgress?.received ?? 0;
+    const total = quiz.streamProgress?.total ?? 0;
+    const pct = total > 0 ? Math.round((received / total) * 100) : 0;
+
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Loader2 size={22} className="animate-spin text-teal flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-navy text-sm">
+                Generating questions… {received} / {total || "?"}
+              </p>
+              <div className="w-56 bg-gray-200 rounded-full h-1.5 mt-1.5">
+                <div
+                  className="bg-teal h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={quiz.cancelStream}
+            className="text-xs text-gray-400 hover:text-coral transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+
+        {/* Live preview of questions as they arrive */}
+        {quiz.questions.length > 0 && (
+          <div className="space-y-3">
+            {quiz.questions.map((q, i) => (
+              <div
+                key={q.id}
+                className="card animate-fadeIn border border-gray-100"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-gray-400 font-medium">Q{i + 1}</span>
+                  <div className="flex gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-teal/10 text-teal capitalize">
+                      {q.difficulty}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 capitalize">
+                      {q.type.replace("_", " ")}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-navy text-sm font-medium leading-snug">{q.question}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {quiz.questions.length === 0 && (
+          <p className="text-center text-sm text-gray-400 py-8">
+            First questions arriving shortly…
+          </p>
+        )}
       </div>
     );
   }

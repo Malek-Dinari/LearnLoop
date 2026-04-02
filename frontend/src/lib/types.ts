@@ -60,8 +60,33 @@ export interface ChatMessage {
 export type QuizState =
   | "IDLE"
   | "GENERATING"
+  | "STREAMING"
   | "READY"
   | "IN_PROGRESS"
   | "REVIEWING"
   | "COMPLETE"
   | "COACHING";
+
+// SSE event types from GET /api/quiz/generate/stream
+export interface SSEStartEvent {
+  type: "start";
+  total: number;
+  batches: number;
+}
+export interface SSEQuestionEvent {
+  type: "question";
+  question: Question;
+  index: number;
+}
+export interface SSEErrorEvent {
+  type: "error";
+  message: string;
+  batch?: number;
+  fatal?: boolean;
+}
+export interface SSECompleteEvent {
+  type: "complete";
+  quiz_id: string;
+  total: number;
+}
+export type SSEEvent = SSEStartEvent | SSEQuestionEvent | SSEErrorEvent | SSECompleteEvent;
