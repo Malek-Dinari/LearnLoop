@@ -18,7 +18,7 @@ class QuizGenerateRequest(BaseModel):
     source_type: str = Field(..., pattern="^(topic|document)$")
     topic: Optional[str] = None
     document_id: Optional[str] = None
-    num_questions: int = Field(default=10, ge=1, le=20)
+    num_questions: int = Field(default=10, ge=1, le=50)
     question_types: list[str] = Field(default=["mcq", "true_false", "short_answer"])
 
 

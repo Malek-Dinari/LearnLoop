@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from abc import ABC, abstractmethod
 
 import httpx
@@ -25,6 +26,20 @@ class BaseLLMService(ABC):
         ...
 
 
+def truncate_prompt(text: str, max_chars: int | None = None) -> str:
+    """Truncate prompt to max_chars at a sentence boundary. Logs a warning when truncation occurs."""
+    limit = max_chars if max_chars is not None else settings.llm_max_prompt_chars
+    if len(text) <= limit:
+        return text
+    truncated = text[:limit]
+    # Try to end at a sentence boundary
+    last_period = truncated.rfind(".")
+    if last_period > int(limit * 0.8):
+        truncated = truncated[:last_period + 1]
+    logger.warning(f"Prompt truncated from {len(text)} to {len(truncated)} chars")
+    return truncated + "\n[...content truncated for length...]"
+
+
 def _extract_json(text: str) -> dict | list:
     """Extract JSON from LLM response, stripping markdown fences and /think blocks."""
     # Strip <think>...</think> blocks (Qwen thinking mode)
@@ -45,14 +60,20 @@ def _extract_json(text: str) -> dict | list:
         except json.JSONDecodeError:
             pass
 
-    # Try to find JSON array or object in text
+    # Try to find JSON array or object in text (handles preamble like "Here is the JSON:")
     for pattern in [r"\[.*\]", r"\{.*\}"]:
         match = re.search(pattern, text, re.DOTALL)
         if match:
+            candidate = match.group()
             try:
-                return json.loads(match.group())
+                return json.loads(candidate)
             except json.JSONDecodeError:
-                continue
+                # Try fixing trailing commas (common Qwen output issue)
+                fixed = re.sub(r",\s*([}\]])", r"\1", candidate)
+                try:
+                    return json.loads(fixed)
+                except json.JSONDecodeError:
+                    continue
 
     raise ValueError(f"Could not extract JSON from response: {text[:500]}")
 
@@ -63,13 +84,21 @@ class OllamaLLMService(BaseLLMService):
         self.model = model or settings.ollama_model
 
     async def _call_ollama(
-        self, messages: list[dict], temperature: float = 0.7, think: bool = True
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+        think: bool = True,
+        num_predict: int | None = None,
     ) -> str:
+        options: dict = {"temperature": temperature, "num_ctx": 16384}
+        if num_predict is not None:
+            options["num_predict"] = num_predict
+
         payload: dict = {
             "model": self.model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature, "num_ctx": 16384},
+            "options": options,
         }
 
         # Append /no_think to suppress Qwen's extended reasoning for structured output
@@ -84,12 +113,14 @@ class OllamaLLMService(BaseLLMService):
         # Retry on 500 (Ollama returns 500 when model is busy or context issues)
         last_error = None
         for attempt in range(3):
+            t0 = time.monotonic()
             try:
-                async with httpx.AsyncClient(timeout=600.0) as client:
+                async with httpx.AsyncClient(timeout=settings.llm_request_timeout) as client:
                     response = await client.post(
                         f"{self.base_url}/api/chat",
                         json=payload,
                     )
+                    elapsed = time.monotonic() - t0
                     if response.status_code == 500:
                         error_text = response.text[:500]
                         logger.warning(f"Ollama 500 (attempt {attempt+1}/3): {error_text}")
@@ -104,9 +135,15 @@ class OllamaLLMService(BaseLLMService):
                         raise last_error
                     response.raise_for_status()
                     data = response.json()
-                    return data["message"]["content"]
+                    content = data["message"]["content"]
+                    logger.info(
+                        f"LLM call completed in {elapsed:.2f}s "
+                        f"(model={self.model}, num_predict={num_predict}, chars_out={len(content)})"
+                    )
+                    return content
             except httpx.ReadTimeout:
-                logger.warning(f"Ollama timeout (attempt {attempt+1}/3)")
+                elapsed = time.monotonic() - t0
+                logger.warning(f"Ollama timeout after {elapsed:.1f}s (attempt {attempt+1}/3)")
                 last_error = httpx.ReadTimeout("Ollama request timed out")
                 if attempt < 2:
                     await asyncio.sleep(2)
@@ -118,8 +155,10 @@ class OllamaLLMService(BaseLLMService):
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
-        raw = await self._call_ollama(messages, temperature, think=True)
+        messages.append({"role": "user", "content": truncate_prompt(prompt)})
+        raw = await self._call_ollama(
+            messages, temperature, think=True, num_predict=settings.llm_num_predict_text
+        )
         # Strip thinking blocks from output
         return re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
@@ -127,11 +166,13 @@ class OllamaLLMService(BaseLLMService):
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+        messages.append({"role": "user", "content": truncate_prompt(prompt)})
 
         for attempt in range(3):
             # Disable thinking for JSON generation — much faster
-            raw = await self._call_ollama(messages, temperature, think=False)
+            raw = await self._call_ollama(
+                messages, temperature, think=False, num_predict=settings.llm_num_predict_json
+            )
             try:
                 return _extract_json(raw)
             except ValueError:

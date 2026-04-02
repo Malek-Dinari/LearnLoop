@@ -9,6 +9,18 @@ class Settings(BaseSettings):
     default_num_questions: int = 10
     cors_origins: str = "http://localhost:3000"
 
+    # LLM performance controls
+    llm_num_predict_json: int = 512
+    llm_num_predict_text: int = 1024
+    llm_request_timeout: float = 90.0
+    llm_max_prompt_chars: int = 10000
+
+    # Quiz generation
+    quiz_batch_size: int = 3
+
+    # Caching
+    cache_ttl_seconds: int = 1800
+
     model_config = {"env_file": ".env"}
 
 

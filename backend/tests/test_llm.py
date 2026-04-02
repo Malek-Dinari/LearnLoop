@@ -1,5 +1,5 @@
 import pytest
-from app.services.llm_service import llm_service, _extract_json
+from app.services.llm_service import llm_service, _extract_json, truncate_prompt
 
 
 @pytest.mark.asyncio
@@ -32,3 +32,26 @@ def test_extract_json_with_think():
 
 def test_extract_json_array():
     assert _extract_json('[1, 2, 3]') == [1, 2, 3]
+
+
+def test_extract_json_trailing_comma():
+    assert _extract_json('{"a": 1,}') == {"a": 1}
+
+
+def test_extract_json_preamble():
+    text = 'Here is the JSON for you: [{"q": "test", "a": "x"}]'
+    result = _extract_json(text)
+    assert isinstance(result, list)
+    assert result[0]["q"] == "test"
+
+
+def test_truncate_prompt_short():
+    text = "Hello world."
+    assert truncate_prompt(text, max_chars=100) == text
+
+
+def test_truncate_prompt_long():
+    text = "A" * 200 + ". Some more text here."
+    result = truncate_prompt(text, max_chars=100)
+    assert len(result) <= 160  # truncated + marker
+    assert "[...content truncated for length...]" in result

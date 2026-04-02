@@ -7,7 +7,7 @@ from app.prompts.question_gen import (
     TOPIC_QUESTION_USER,
 )
 from app.prompts.grading import GRADING_SYSTEM, GRADING_USER, SUMMARY_SYSTEM, SUMMARY_USER
-from app.services.llm_service import llm_service
+from app.services.llm_service import llm_service, truncate_prompt
 
 
 def _question_types_description(types: list[str]) -> str:
@@ -48,7 +48,7 @@ class QuizService:
         else:
             system = DOCUMENT_QUESTION_SYSTEM
             # Escape braces in document content to prevent .format() errors
-            safe_content = content[:4000].replace("{", "{{").replace("}", "}}")
+            safe_content = truncate_prompt(content).replace("{", "{{").replace("}", "}}")
             user = DOCUMENT_QUESTION_USER.format(
                 num_questions=num_questions,
                 content=safe_content,
