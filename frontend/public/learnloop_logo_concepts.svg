@@ -1,0 +1,98 @@
+<svg width="100%" viewBox="0 0 680 820" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="tealGrad" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#06d6a0"/>
+<stop offset="100%" stop-color="#0fb5ba"/>
+</linearGradient>
+<linearGradient id="darkGrad" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#1f2937"/>
+<stop offset="100%" stop-color="#111827"/>
+</linearGradient>
+</defs>
+
+<!-- Concept 1: Graduation cap with infinity loop -->
+<text x="340" y="30" text-anchor="middle" fill="var(--color-text-secondary)" font-size="13" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:auto">Concept 1 — Graduation cap + infinity loop</text>
+
+<g transform="translate(340, 160)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+<!-- Infinity loop forming the base -->
+<path d="M-60,20 C-60,-15 -20,-15 0,10 C20,-15 60,-15 60,20 C60,55 20,55 0,30 C-20,55 -60,55 -60,20 Z" fill="none" stroke="url(#tealGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" style="fill:none;color:rgb(255, 255, 255);stroke-width:5px;stroke-linecap:round;stroke-linejoin:round;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+<!-- Graduation cap (mortarboard) sitting on top of the loop -->
+<!-- Board -->
+<polygon points="0,-50 55,-30 0,-10 -55,-30" fill="#1f2937" stroke="url(#tealGrad)" stroke-width="1.5" style="fill:rgb(31, 41, 55);color:rgb(255, 255, 255);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Top surface shine -->
+<polygon points="0,-48 50,-30 0,-12 -50,-30" fill="#283548" opacity="0.6" style="fill:rgb(40, 53, 72);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Button on top -->
+<circle cx="0" cy="-50" r="4" fill="url(#tealGrad)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Tassel cord -->
+<path d="M0,-50 Q25,-45 38,-30" fill="none" stroke="url(#tealGrad)" stroke-width="2" stroke-linecap="round" style="fill:none;color:rgb(255, 255, 255);stroke-width:2px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Tassel end -->
+<rect x="34" y="-30" width="8" height="16" rx="2" fill="url(#tealGrad)" style="stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="34" y1="-14" x2="42" y2="-14" stroke="#06d6a0" stroke-width="1.5" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="35" y1="-12" x2="41" y2="-12" stroke="#06d6a0" stroke-width="1" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="36" y1="-10" x2="40" y2="-10" stroke="#06d6a0" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+</g>
+
+<!-- Text for concept 1 -->
+<text x="340" y="260" text-anchor="middle" fill="var(--color-text-primary)" font-family="'Plus Jakarta Sans', var(--font-sans)" font-size="28" font-weight="700" letter-spacing="-0.5" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Plus Jakarta Sans&quot;, &quot;Anthropic Sans&quot;, sans-serif;font-size:28px;font-weight:700;text-anchor:middle;dominant-baseline:auto">Learn<tspan fill="#06d6a0" style="fill:rgb(6, 214, 160);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Plus Jakarta Sans&quot;, &quot;Anthropic Sans&quot;, sans-serif;font-size:28px;font-weight:700;text-anchor:middle;dominant-baseline:auto">Loop</tspan></text>
+<text x="340" y="282" text-anchor="middle" fill="var(--color-text-tertiary)" font-family="var(--font-sans)" font-size="11" letter-spacing="3" style="fill:rgb(156, 154, 146);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, sans-serif;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">AI-POWERED STUDY PLATFORM</text>
+
+
+<!-- Divider -->
+<line x1="120" y1="320" x2="560" y2="320" stroke="var(--color-border-tertiary)" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgba(222, 220, 209, 0.15);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+
+<!-- Concept 2: Book + circular arrow loop -->
+<text x="340" y="355" text-anchor="middle" fill="var(--color-text-secondary)" font-size="13" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:auto">Concept 2 — Open book with orbit loop</text>
+
+<g transform="translate(340, 470)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+<!-- Open book shape -->
+<path d="M-4,-30 Q-40,-35 -50,-20 L-50,20 Q-40,10 -4,15 Z" fill="#1f2937" stroke="url(#tealGrad)" stroke-width="1.2" style="fill:rgb(31, 41, 55);color:rgb(255, 255, 255);stroke-width:1.2px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<path d="M4,-30 Q40,-35 50,-20 L50,20 Q40,10 4,15 Z" fill="#283548" stroke="url(#tealGrad)" stroke-width="1.2" style="fill:rgb(40, 53, 72);color:rgb(255, 255, 255);stroke-width:1.2px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Spine -->
+<path d="M0,-32 L0,17" stroke="url(#tealGrad)" stroke-width="1.5" stroke-linecap="round" style="fill:rgb(0, 0, 0);color:rgb(255, 255, 255);stroke-width:1.5px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Page lines left -->
+<line x1="-38" y1="-15" x2="-12" y2="-12" stroke="#06d6a0" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="-40" y1="-6" x2="-12" y2="-3" stroke="#06d6a0" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="-42" y1="3" x2="-12" y2="6" stroke="#06d6a0" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Page lines right -->
+<line x1="38" y1="-15" x2="12" y2="-12" stroke="#06d6a0" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="40" y1="-6" x2="12" y2="-3" stroke="#06d6a0" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="42" y1="3" x2="12" y2="6" stroke="#06d6a0" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(6, 214, 160);color:rgb(255, 255, 255);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+<!-- Circular orbit loop around the book -->
+<ellipse cx="0" cy="-5" rx="70" ry="50" fill="none" stroke="url(#tealGrad)" stroke-width="2.5" stroke-dasharray="8 6" opacity="0.7" style="fill:none;color:rgb(255, 255, 255);stroke-width:2.5px;stroke-dasharray:8px, 6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.7;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Arrow head on orbit -->
+<polygon points="68,-18 75,-10 62,-12" fill="#06d6a0" style="fill:rgb(6, 214, 160);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+<!-- Small sparkle dots on orbit -->
+<circle cx="-68" cy="5" r="3" fill="#06d6a0" opacity="0.8" style="fill:rgb(6, 214, 160);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.8;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<circle cx="30" cy="-52" r="2.5" fill="#0fb5ba" opacity="0.6" style="fill:rgb(15, 181, 186);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<circle cx="-45" cy="-44" r="2" fill="#06d6a0" opacity="0.5" style="fill:rgb(6, 214, 160);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.5;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+</g>
+
+<!-- Text for concept 2 -->
+<text x="340" y="560" text-anchor="middle" fill="var(--color-text-primary)" font-family="'Plus Jakarta Sans', var(--font-sans)" font-size="28" font-weight="700" letter-spacing="-0.5" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Plus Jakarta Sans&quot;, &quot;Anthropic Sans&quot;, sans-serif;font-size:28px;font-weight:700;text-anchor:middle;dominant-baseline:auto">Learn<tspan fill="#06d6a0" style="fill:rgb(6, 214, 160);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Plus Jakarta Sans&quot;, &quot;Anthropic Sans&quot;, sans-serif;font-size:28px;font-weight:700;text-anchor:middle;dominant-baseline:auto">Loop</tspan></text>
+<text x="340" y="582" text-anchor="middle" fill="var(--color-text-tertiary)" font-family="var(--font-sans)" font-size="11" letter-spacing="3" style="fill:rgb(156, 154, 146);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, sans-serif;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">AI-POWERED STUDY PLATFORM</text>
+
+
+<!-- Divider -->
+<line x1="120" y1="620" x2="560" y2="620" stroke="var(--color-border-tertiary)" stroke-width="0.5" style="fill:rgb(0, 0, 0);stroke:rgba(222, 220, 209, 0.15);color:rgb(255, 255, 255);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+
+<!-- Concept 3: Minimal — L monogram with loop -->
+<text x="340" y="655" text-anchor="middle" fill="var(--color-text-secondary)" font-size="13" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:auto">Concept 3 — Minimal "L" monogram with loop</text>
+
+<g transform="translate(340, 740)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+<!-- L shape -->
+<path d="M-22,-30 L-22,18 L22,18" fill="none" stroke="var(--color-text-primary)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:rgb(250, 249, 245);color:rgb(255, 255, 255);stroke-width:6px;stroke-linecap:round;stroke-linejoin:round;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Loop curving from end of L back to top -->
+<path d="M22,18 C45,18 45,-10 30,-25 C20,-35 -5,-35 -10,-25" fill="none" stroke="url(#tealGrad)" stroke-width="4" stroke-linecap="round" style="fill:none;color:rgb(255, 255, 255);stroke-width:4px;stroke-linecap:round;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Arrow tip -->
+<polygon points="-14,-28 -6,-28 -10,-20" fill="#06d6a0" style="fill:rgb(6, 214, 160);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+</g>
+
+<!-- Text for concept 3 -->
+<text x="340" y="800" text-anchor="middle" fill="var(--color-text-primary)" font-family="'Plus Jakarta Sans', var(--font-sans)" font-size="28" font-weight="700" letter-spacing="-0.5" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Plus Jakarta Sans&quot;, &quot;Anthropic Sans&quot;, sans-serif;font-size:28px;font-weight:700;text-anchor:middle;dominant-baseline:auto">Learn<tspan fill="#06d6a0" style="fill:rgb(6, 214, 160);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Plus Jakarta Sans&quot;, &quot;Anthropic Sans&quot;, sans-serif;font-size:28px;font-weight:700;text-anchor:middle;dominant-baseline:auto">Loop</tspan></text>
+
+</svg>
