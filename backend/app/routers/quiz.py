@@ -1,7 +1,8 @@
+import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.models import (
@@ -55,6 +56,7 @@ async def generate_quiz(request: QuizGenerateRequest):
 
 @router.get("/generate/stream")
 async def generate_quiz_stream(
+    request: Request,
     source_type: str,
     topic: str | None = None,
     document_id: str | None = None,
@@ -109,6 +111,15 @@ async def generate_quiz_stream(
         seen_questions: set[str] = set()
 
         for i, size in enumerate(batches):
+            # Send keep-alive ping before each batch so the connection doesn't
+            # time out while the LLM is generating (can take 30-45s per batch).
+            yield ": keep-alive\n\n"
+
+            # Check if client disconnected
+            if await request.is_disconnected():
+                logger.info("SSE client disconnected before batch %d", i)
+                return
+
             batch = await quiz_service._generate_batch(content, source_type, size, types_list, i)
 
             if not batch:
@@ -129,14 +140,20 @@ async def generate_quiz_stream(
         quiz_id = quiz_service.create_quiz(all_questions)
         yield f"data: {json.dumps({'type': 'complete', 'quiz_id': quiz_id, 'total': len(all_questions)})}\n\n"
 
+    # Add CORS origin explicitly — Starlette middleware may not inject it on StreamingResponse
+    origin = request.headers.get("origin", settings.cors_origins.split(",")[0])
+    sse_headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "Connection": "keep-alive",
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+    }
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "Connection": "keep-alive",
-        },
+        headers=sse_headers,
     )
 
 

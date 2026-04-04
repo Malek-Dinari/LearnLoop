@@ -8,7 +8,9 @@ import {
   SSEEvent,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+// Use relative /api so requests go through the Next.js dev proxy (same-origin, no CORS).
+// In production, set NEXT_PUBLIC_API_URL=https://your-backend.com/api
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -82,7 +84,10 @@ export function generateQuizStream(
   const url = `${API_BASE}/quiz/generate/stream?${qs.toString()}`;
   const es = new EventSource(url);
 
+  let connected = false;
+
   es.onmessage = (e) => {
+    connected = true;
     try {
       const data = JSON.parse(e.data) as SSEEvent;
       onEvent(data);
@@ -96,7 +101,12 @@ export function generateQuizStream(
   };
 
   es.onerror = () => {
-    onError(new Error("SSE connection failed or closed unexpectedly"));
+    // readyState CLOSED after receiving events = stream finished normally, ignore.
+    if (es.readyState === EventSource.CLOSED && connected) return;
+    const msg = connected
+      ? "Quiz stream dropped mid-generation. Check if Ollama is still running."
+      : "Cannot reach backend. Make sure the server is running on port 8000.";
+    onError(new Error(msg));
     es.close();
   };
 
