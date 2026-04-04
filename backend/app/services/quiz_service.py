@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import logging
 import uuid
@@ -168,12 +169,22 @@ class QuizService:
 
         logger.info(f"Generating {num_questions} questions in {len(batches)} batches: {batches}")
 
-        # Run batches sequentially — Ollama processes requests one at a time anyway,
-        # so asyncio.gather just causes timeout cascades (later batches timeout while queued).
+        # Run batches in parallel when OLLAMA_NUM_PARALLEL > 1 allows it.
+        # Each batch is an independent LLM call; asyncio.gather fires them concurrently.
+        # With OLLAMA_NUM_PARALLEL=1 (default) Ollama still queues them serially —
+        # safe but no faster. Set OLLAMA_NUM_PARALLEL=2 or 3 in your shell before
+        # `ollama serve` to actually parallelize (qwen3:1.7b fits 2-3x in 4GB VRAM).
+        results = await asyncio.gather(
+            *[self._generate_batch(content, source_type, size, question_types, i)
+              for i, size in enumerate(batches)],
+            return_exceptions=True,
+        )
         all_questions: list[dict] = []
-        for i, size in enumerate(batches):
-            batch = await self._generate_batch(content, source_type, size, question_types, i)
-            all_questions.extend(batch)
+        for r in results:
+            if isinstance(r, list):
+                all_questions.extend(r)
+            else:
+                logger.warning(f"A batch raised an exception: {r}")
 
         if not all_questions:
             raise RuntimeError("All question generation batches failed. Check Ollama connectivity.")
