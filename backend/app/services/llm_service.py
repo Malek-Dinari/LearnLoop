@@ -132,11 +132,13 @@ class OllamaLLMService(BaseLLMService):
                         json=payload,
                     )
                     elapsed = time.monotonic() - t0
-                    if response.status_code == 500:
+                    if response.status_code != 200:
                         error_text = response.text[:500]
-                        logger.warning(f"Ollama 500 (attempt {attempt+1}/3): {error_text}")
+                        logger.warning(
+                            f"Ollama {response.status_code} (attempt {attempt+1}/3): {error_text}"
+                        )
                         last_error = httpx.HTTPStatusError(
-                            f"Ollama 500: {error_text}",
+                            f"Ollama {response.status_code}: {error_text}",
                             request=response.request,
                             response=response,
                         )
@@ -144,7 +146,6 @@ class OllamaLLMService(BaseLLMService):
                             await asyncio.sleep(3 * (attempt + 1))
                             continue
                         raise last_error
-                    response.raise_for_status()
                     data = response.json()
                     content = data["message"]["content"]
                     logger.info(
