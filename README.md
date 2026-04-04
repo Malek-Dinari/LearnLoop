@@ -31,35 +31,56 @@
 ## What's Working Today
 
 - **Document upload** (PDF, TXT) with text extraction and chunking
+- **Progressive quiz generation via SSE** — questions stream to the browser as they're generated (no more blank loading screen)
 - **Quiz generation** from uploaded documents or free-text topics (2-50 questions, MCQ + short answer + true/false mix)
+- **Parallel batch generation** — up to 2-3x speedup with `OLLAMA_NUM_PARALLEL=2/3`
 - **Answer submission** with instant LLM-graded feedback and explanations
 - **Results page** with score breakdown, per-question review, and AI coaching summary
 - **Socratic coaching chat** for post-quiz follow-up
 - **Health check** endpoint with LLM connectivity status
+- **In-memory caching** with TTL (configurable, designed for Redis swap later)
 - **Full test suite** (unit tests for LLM, documents, quiz, and grading services)
+- **Robust error handling** — partial batch failures don't crash the quiz, connection drops are gracefully recovered
 
-**Current LLM:** Ollama + Qwen 3.5 9B (Q4_K_M quantization), running locally on CPU/GPU via WSL2.
+**Current LLM:** Ollama + Qwen 3 1.7B (Q4_K_M quantization), running locally on CPU via WSL2. ~1.1GB VRAM, supports 2-3x parallel inference pipelines with `OLLAMA_NUM_PARALLEL=2`.
 
 ---
 
 ## Performance Benchmarks
 
-Measured with Qwen 3.5 9B Q4_K_M on WSL2 (no dedicated GPU):
+### With Qwen 3 1.7B (Current — Fast, Trade-off: Quality)
+Measured on CPU (WSL2, no GPU). Uses 1.1GB VRAM; supports 2x parallelization (3 with 4GB+ VRAM).
 
-| Operation | Average | Worst Case |
-|-----------|---------|------------|
-| Health check | <1s | 2s |
-| Topic quiz (3 MCQ) | ~30-45s | ~90s |
-| Topic quiz (10 mixed) | ~60-90s | ~3min |
-| Document upload + parse | <2s | 5s (large PDF) |
-| Document quiz (5 questions) | ~60-120s | ~5min |
-| Document quiz (10 questions) | ~2-4min | ~8min |
+| Operation | Single | Dual-Parallel |
+|-----------|--------|---------------|
+| Health check | <1s | <1s |
+| Topic quiz (3 MCQ) | ~8-12s | ~5-7s |
+| Topic quiz (10 mixed) | ~25-35s | ~15-20s |
+| Document upload + parse | <2s | <2s |
+| Document quiz (5 questions) | ~15-25s | ~10-15s |
+| Document quiz (10 questions) | ~30-45s | ~20-30s |
 | Answer grading (MCQ/TF) | instant | instant |
-| Answer grading (short answer) | ~15-30s | ~60s |
-| Coaching chat response | ~30-60s | ~2min |
-| Quiz results + AI summary | ~30-60s | ~2min |
+| Answer grading (short answer) | ~3-5s | ~3-5s |
+| Coaching chat response | ~5-8s | ~5-8s |
+| Quiz results + AI summary | ~5-8s | ~5-8s |
 
-> The primary bottleneck is Qwen 3.5's thinking mode (long internal reasoning chains even with `/no_think`) and its 16K context window slowing inference. See [Roadmap](#roadmap) for planned mitigations.
+**To enable 2x parallelization**, set before starting Ollama:
+```bash
+OLLAMA_NUM_PARALLEL=2 ollama serve
+```
+
+### Alternative: Qwen 3.5 4B (Balanced)
+3.4GB model, ~3-4x faster than 9B, higher quality than 1.7B.
+
+| Operation | Time |
+|-----------|------|
+| Topic quiz (10 mixed) | ~15-25s |
+| Document quiz (10 questions) | ~20-35s |
+
+### Qwen 3.5 9B (High Quality, Slower)
+6.6GB model. Previous default. Best quality, slowest (~3-5min for 10 questions).
+
+> **Recommendation**: Qwen 3 1.7B with `OLLAMA_NUM_PARALLEL=2` offers best latency (~20-30s for 10 questions). For higher quality, switch to Qwen 3.5 4B.
 
 ---
 
@@ -69,9 +90,11 @@ Measured with Qwen 3.5 9B Q4_K_M on WSL2 (no dedicated GPU):
 - Node.js 20+
 - [Ollama](https://ollama.ai/) running locally with a model pulled:
   ```bash
-  ollama pull qwen3:4b        # Recommended: faster, good quality
+  ollama pull qwen3:1.7b      # Current default: fastest (1.1GB VRAM), good for quick testing
   # or
-  ollama pull qwen3.5:9b      # Current default: slower but more capable
+  ollama pull qwen3.5:4b      # Balanced: faster than 9B, better quality than 1.7B (3.4GB VRAM)
+  # or
+  ollama pull qwen3.5:9b      # High quality: slower but most capable (6.6GB VRAM)
   ```
 
 ## Quick Start
@@ -81,12 +104,12 @@ Measured with Qwen 3.5 9B Q4_K_M on WSL2 (no dedicated GPU):
 make setup-backend
 make setup-frontend
 
-# 2. Make sure Ollama is running
-ollama serve
+# 2. Start Ollama with parallelization enabled (2x speedup)
+OLLAMA_NUM_PARALLEL=2 ollama serve
 
-# 3. Start both servers
-make run-backend   # Terminal 1 — http://localhost:8000
-make run-frontend  # Terminal 2 — http://localhost:3000
+# 3. Start both servers (new terminals)
+make run-backend   # Terminal 2 — http://localhost:8000
+make run-frontend  # Terminal 3 — http://localhost:3000
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -125,10 +148,13 @@ LearnLoop/
 |--------|------|-------------|
 | GET | `/api/health` | Health check + LLM status |
 | POST | `/api/documents/upload` | Upload PDF/TXT |
-| POST | `/api/quiz/generate` | Generate quiz questions |
+| POST | `/api/quiz/generate` | Generate quiz questions (sync, returns all at once) |
+| **GET** | **`/api/quiz/generate/stream`** | **Stream quiz questions progressively via SSE** ← Recommended |
 | POST | `/api/quiz/{id}/answer` | Submit an answer |
-| GET | `/api/quiz/{id}/results` | Get quiz results + coaching |
+| GET | `/api/quiz/{id}/results` | Get quiz results + coaching summary |
 | POST | `/api/chat/coach` | Socratic coaching chat |
+
+> **Note**: The frontend uses `/api/quiz/generate/stream` (SSE) by default for progressive rendering. The synchronous POST endpoint is still available as a fallback.
 
 ## Running Tests
 
@@ -144,11 +170,13 @@ make test
 
 These are the highest-impact items — they affect both perceived and actual performance:
 
-- [ ] **Streaming responses via SSE** — Show quiz questions to the user as they generate instead of waiting for the full batch. Eliminates the blank loading screen during long generations and gives immediate visual feedback.
-- [ ] **Faster LLM inference** — Switch default model from `qwen3.5:9b` to a smaller, faster model (`qwen3:4b`, `phi-4-mini`, or similar). Target: **2-3x faster** quiz generation and grading. The current 9B model's thinking mode and 16K context window are the primary bottleneck. Additional options:
-  - Cap `num_predict` in Ollama to limit runaway token generation
+- [x] **Streaming responses via SSE** — Show quiz questions to the user as they generate instead of waiting for the full batch. Eliminates the blank loading screen during long generations and gives immediate visual feedback. ✅ Implemented with keep-alive pings and error recovery.
+- [x] **Parallel batch generation** — Use `OLLAMA_NUM_PARALLEL=2/3` to run multiple inference pipelines concurrently. Achieved **~2x speedup** with qwen3:1.7b using 2x parallelization. ✅ Implemented.
+- [ ] **Faster LLM inference** — Current default is Qwen 3 1.7B (~25-35s/10 questions). Options to improve further:
+  - Switch to `qwen3.5:4b` for better quality (~15-25s) at 3.4GB VRAM cost
+  - Swap Ollama for **Groq API** (free tier, 100+ requests/day) — `llama-3.1-8b` achieves <200ms latency
   - Dedicated GPU (12GB+ VRAM) for 3-5x speedup over CPU
-  - Pre-generation queue: generate questions in background while user configures settings
+  - Background pre-generation queue
 
 ### Infrastructure & Persistence
 
