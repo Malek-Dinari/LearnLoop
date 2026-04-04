@@ -42,7 +42,7 @@ async def test_generate_batch_partial_failure():
 
     call_count = 0
 
-    async def mock_generate_json(prompt, system_prompt="", temperature=0.3):
+    async def mock_generate_json(prompt, system_prompt="", temperature=0.3, **kwargs):
         nonlocal call_count
         call_count += 1
         # Fail on the second call
@@ -86,7 +86,7 @@ async def test_deduplication():
         "difficulty": "easy",
     }
 
-    async def mock_generate_json(prompt, system_prompt="", temperature=0.3):
+    async def mock_generate_json(prompt, system_prompt="", temperature=0.3, **kwargs):
         return [duplicate_question]
 
     with patch('app.services.quiz_service.llm_service') as mock_llm:

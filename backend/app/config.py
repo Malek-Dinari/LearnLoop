@@ -10,13 +10,14 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # LLM performance controls
-    llm_num_predict_json: int = 512
+    llm_num_predict_json: int = 1024   # was 512 — not enough for 3-question batches
     llm_num_predict_text: int = 1024
-    llm_request_timeout: float = 90.0
-    llm_max_prompt_chars: int = 10000
+    llm_request_timeout: float = 60.0  # per attempt; 3 retries = 180s max
+    llm_max_prompt_chars: int = 8000   # conservative; keeps total tokens well within num_ctx
+    llm_num_ctx: int = 8192            # context window (override in .env for model size)
 
     # Quiz generation
-    quiz_batch_size: int = 3
+    quiz_batch_size: int = 2           # questions per LLM call (reduce for smaller models)
 
     # Caching
     cache_ttl_seconds: int = 1800

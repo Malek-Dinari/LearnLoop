@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import logging
 import uuid
@@ -86,16 +85,47 @@ class QuizService:
                     question_types_description=types_desc,
                 )
 
-            raw = await llm_service.generate_json(user, system, temperature=0.3)
+            # Scale output tokens with batch size.
+            # qwen3:1.7b generates ~2 chars/token; a verbose MCQ response is ~1600-2000 chars
+            # = ~800-1000 tokens. Use 1500 minimum + 800 per extra question beyond the first.
+            batch_num_predict = max(1500, 700 + batch_size * 800)
+            raw = await llm_service.generate_json(
+                user, system, temperature=0.3, num_predict=batch_num_predict
+            )
 
-            if isinstance(raw, dict) and "questions" in raw:
-                raw = raw["questions"]
+            # Unwrap if the model returned {"questions": [...]} or any other dict-wrapping
+            if isinstance(raw, dict):
+                # Try common wrapper keys first
+                for key in ("questions", "quiz", "items", "data", "results"):
+                    if key in raw and isinstance(raw[key], list):
+                        logger.debug(f"Batch {batch_index}: unwrapped dict key '{key}'")
+                        raw = raw[key]
+                        break
+                else:
+                    # Fall back: take the first list value found
+                    for val in raw.values():
+                        if isinstance(val, list):
+                            raw = val
+                            break
+                    else:
+                        logger.warning(
+                            f"Batch {batch_index}: LLM returned dict with no list values: "
+                            f"{list(raw.keys())}"
+                        )
+                        return []
 
             if not isinstance(raw, list):
                 logger.warning(f"Batch {batch_index}: LLM returned non-list, got {type(raw)}")
                 return []
 
-            questions = [_normalize_question(q, source_type, content) for q in raw[:batch_size]]
+            # Filter out any non-dict items (model sometimes returns string arrays on retry)
+            dict_items = [q for q in raw[:batch_size] if isinstance(q, dict)]
+            if len(dict_items) < len(raw[:batch_size]):
+                logger.warning(
+                    f"Batch {batch_index}: filtered {len(raw[:batch_size]) - len(dict_items)} "
+                    f"non-dict items from LLM response"
+                )
+            questions = [_normalize_question(q, source_type, content) for q in dict_items]
             logger.info(f"Batch {batch_index}: generated {len(questions)} questions")
             return questions
 
@@ -138,22 +168,12 @@ class QuizService:
 
         logger.info(f"Generating {num_questions} questions in {len(batches)} batches: {batches}")
 
-        # Run all batches in parallel — Ollama queues them internally
-        results = await asyncio.gather(
-            *[
-                self._generate_batch(content, source_type, size, question_types, i)
-                for i, size in enumerate(batches)
-            ],
-            return_exceptions=True,
-        )
-
-        # Collect successful questions, skip exceptions
+        # Run batches sequentially — Ollama processes requests one at a time anyway,
+        # so asyncio.gather just causes timeout cascades (later batches timeout while queued).
         all_questions: list[dict] = []
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.warning(f"Batch {i} raised exception: {result}")
-            elif isinstance(result, list):
-                all_questions.extend(result)
+        for i, size in enumerate(batches):
+            batch = await self._generate_batch(content, source_type, size, question_types, i)
+            all_questions.extend(batch)
 
         if not all_questions:
             raise RuntimeError("All question generation batches failed. Check Ollama connectivity.")

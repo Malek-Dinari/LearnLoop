@@ -18,7 +18,13 @@ class BaseLLMService(ABC):
         ...
 
     @abstractmethod
-    async def generate_json(self, prompt: str, system_prompt: str = "", temperature: float = 0.3) -> dict | list:
+    async def generate_json(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        temperature: float = 0.3,
+        num_predict: int | None = None,
+    ) -> dict | list:
         ...
 
     @abstractmethod
@@ -32,7 +38,6 @@ def truncate_prompt(text: str, max_chars: int | None = None) -> str:
     if len(text) <= limit:
         return text
     truncated = text[:limit]
-    # Try to end at a sentence boundary
     last_period = truncated.rfind(".")
     if last_period > int(limit * 0.8):
         truncated = truncated[:last_period + 1]
@@ -41,10 +46,13 @@ def truncate_prompt(text: str, max_chars: int | None = None) -> str:
 
 
 def _extract_json(text: str) -> dict | list:
-    """Extract JSON from LLM response, stripping markdown fences and /think blocks."""
+    """Extract JSON from LLM response, stripping markdown fences and think blocks."""
     # Strip <think>...</think> blocks (Qwen thinking mode)
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     text = text.strip()
+
+    if not text:
+        raise ValueError("LLM returned empty response after stripping think blocks")
 
     # Try direct parse first
     try:
@@ -60,7 +68,8 @@ def _extract_json(text: str) -> dict | list:
         except json.JSONDecodeError:
             pass
 
-    # Try to find JSON array or object in text (handles preamble like "Here is the JSON:")
+    # Search for JSON array or object in text (handles preamble like "Here is the JSON:")
+    # Try array first (expected for question batches), then object
     for pattern in [r"\[.*\]", r"\{.*\}"]:
         match = re.search(pattern, text, re.DOTALL)
         if match:
@@ -68,14 +77,14 @@ def _extract_json(text: str) -> dict | list:
             try:
                 return json.loads(candidate)
             except json.JSONDecodeError:
-                # Try fixing trailing commas (common Qwen output issue)
+                # Fix trailing commas (common small-model output issue)
                 fixed = re.sub(r",\s*([}\]])", r"\1", candidate)
                 try:
                     return json.loads(fixed)
                 except json.JSONDecodeError:
                     continue
 
-    raise ValueError(f"Could not extract JSON from response: {text[:500]}")
+    raise ValueError(f"Could not extract JSON from response (len={len(text)}): {text[:300]!r}")
 
 
 class OllamaLLMService(BaseLLMService):
@@ -90,7 +99,10 @@ class OllamaLLMService(BaseLLMService):
         think: bool = True,
         num_predict: int | None = None,
     ) -> str:
-        options: dict = {"temperature": temperature, "num_ctx": 16384}
+        options: dict = {
+            "temperature": temperature,
+            "num_ctx": settings.llm_num_ctx,   # was hardcoded 16384
+        }
         if num_predict is not None:
             options["num_predict"] = num_predict
 
@@ -110,7 +122,6 @@ class OllamaLLMService(BaseLLMService):
                     break
             payload["messages"] = msgs_copy
 
-        # Retry on 500 (Ollama returns 500 when model is busy or context issues)
         last_error = None
         for attempt in range(3):
             t0 = time.monotonic()
@@ -138,7 +149,8 @@ class OllamaLLMService(BaseLLMService):
                     content = data["message"]["content"]
                     logger.info(
                         f"LLM call completed in {elapsed:.2f}s "
-                        f"(model={self.model}, num_predict={num_predict}, chars_out={len(content)})"
+                        f"(model={self.model}, num_predict={num_predict}, "
+                        f"num_ctx={settings.llm_num_ctx}, chars_out={len(content)})"
                     )
                     return content
             except httpx.ReadTimeout:
@@ -159,30 +171,46 @@ class OllamaLLMService(BaseLLMService):
         raw = await self._call_ollama(
             messages, temperature, think=True, num_predict=settings.llm_num_predict_text
         )
-        # Strip thinking blocks from output
         return re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
 
-    async def generate_json(self, prompt: str, system_prompt: str = "", temperature: float = 0.3) -> dict | list:
+    async def generate_json(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        temperature: float = 0.3,
+        num_predict: int | None = None,
+    ) -> dict | list:
+        """
+        Generate a JSON response from the LLM.
+        num_predict overrides the config default — callers that know they need more tokens
+        (e.g. batches of 3 questions) should pass an explicit value.
+        """
+        effective_predict = num_predict if num_predict is not None else settings.llm_num_predict_json
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": truncate_prompt(prompt)})
 
         for attempt in range(3):
-            # Disable thinking for JSON generation — much faster
             raw = await self._call_ollama(
-                messages, temperature, think=False, num_predict=settings.llm_num_predict_json
+                messages, temperature, think=False, num_predict=effective_predict
             )
+            # Log the raw response when it's short/suspicious — helps diagnose cut-offs
+            if len(raw.strip()) < 20:
+                logger.warning(f"Suspiciously short LLM response (attempt {attempt+1}): {raw!r}")
             try:
                 return _extract_json(raw)
-            except ValueError:
+            except ValueError as exc:
+                logger.warning(f"JSON extraction failed (attempt {attempt+1}/3): {exc}")
                 if attempt < 2:
                     messages.append({"role": "assistant", "content": raw})
                     messages.append({
                         "role": "user",
                         "content": (
                             "Your previous response was not valid JSON. "
-                            "Respond with ONLY raw JSON. No markdown, no explanation, no code fences."
+                            "Respond with ONLY a raw JSON array of objects. "
+                            "No markdown, no explanations, no code fences. "
+                            'Example format: [{"type":"mcq","question":"...","options":[...],"correct_answer":"...","explanation":"...","difficulty":"easy"}]'
                         ),
                     })
                     continue
