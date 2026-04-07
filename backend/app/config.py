@@ -29,10 +29,23 @@ class Settings(BaseSettings):
     # Quiz generation
     quiz_batch_size: int = 2           # questions per LLM call (reduce for smaller models)
 
+    # Database (PostgreSQL via asyncpg, or SQLite for tests)
+    database_url: str = "postgresql+asyncpg://learnloop:learnloop@localhost:5432/learnloop"
+    db_echo: bool = False          # set True to log all SQL statements
+    use_database: bool = False     # False = in-memory (local dev), True = PostgreSQL
+
     # Cache backend: "memory" or "redis"
     cache_backend: str = "memory"
     redis_url: str = "redis://localhost:6379/0"
     cache_ttl_seconds: int = 1800
+
+    @property
+    def async_database_url(self) -> str:
+        """Convert Railway's postgresql:// to postgresql+asyncpg:// if needed."""
+        url = self.database_url
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
 
     model_config = {"env_file": ".env"}
 

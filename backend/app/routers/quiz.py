@@ -2,8 +2,9 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import (
     QuizGenerateRequest,
@@ -14,6 +15,7 @@ from app.models import (
     QuizResultsResponse,
 )
 from app.config import settings
+from app.database import get_db
 from app.services.quiz_service import quiz_service
 from app.services.document_service import document_service
 
@@ -22,7 +24,10 @@ router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
 
 @router.post("/generate", response_model=QuizGenerateResponse)
-async def generate_quiz(request: QuizGenerateRequest):
+async def generate_quiz(
+    request: QuizGenerateRequest,
+    db: AsyncSession | None = Depends(get_db),
+):
     if request.source_type == "topic":
         if not request.topic:
             raise HTTPException(400, "Topic is required for topic-based quizzes")
@@ -30,7 +35,7 @@ async def generate_quiz(request: QuizGenerateRequest):
     else:
         if not request.document_id:
             raise HTTPException(400, "Document ID is required for document-based quizzes")
-        doc = document_service.get_document(request.document_id)
+        doc = await document_service.get_document(request.document_id, db)
         if not doc:
             raise HTTPException(404, "Document not found")
         content = "\n\n".join(doc["chunks"])
@@ -46,7 +51,13 @@ async def generate_quiz(request: QuizGenerateRequest):
         logger.exception("Quiz generation failed")
         raise HTTPException(502, f"LLM generation failed: {e}")
 
-    quiz_id = quiz_service.create_quiz(questions)
+    quiz_id = await quiz_service.create_quiz(
+        questions,
+        db,
+        source_type=request.source_type,
+        topic=request.topic,
+        document_id=request.document_id,
+    )
 
     return QuizGenerateResponse(
         quiz_id=quiz_id,
@@ -62,6 +73,7 @@ async def generate_quiz_stream(
     document_id: str | None = None,
     num_questions: int = 10,
     question_types: str = "mcq,true_false,short_answer",
+    db: AsyncSession | None = Depends(get_db),
 ):
     """
     SSE endpoint for progressive quiz generation.
@@ -86,14 +98,20 @@ async def generate_quiz_stream(
     if not types_list:
         types_list = ["mcq", "true_false", "short_answer"]
 
-    # Resolve content
+    # Resolve content BEFORE entering the generator so we can use the Depends session.
+    # The SSE generator runs for minutes — we must not hold the session open the whole time.
     if source_type == "topic":
         content = topic  # type: ignore[assignment]
     else:
-        doc = document_service.get_document(document_id)  # type: ignore[arg-type]
+        doc = await document_service.get_document(document_id, db)  # type: ignore[arg-type]
         if not doc:
             raise HTTPException(404, "Document not found")
         content = "\n\n".join(doc["chunks"])
+
+    # The Depends session has already committed (document fetch is read-only).
+    # Close it now so we don't hold a connection during the long LLM generation.
+    if db is not None:
+        await db.close()
 
     # Build batch plan (same logic as generate_questions)
     batch_size = settings.quiz_batch_size
@@ -137,7 +155,22 @@ async def generate_quiz_stream(
             yield f"data: {json.dumps({'type': 'error', 'message': 'All batches failed. Check Ollama connectivity.', 'fatal': True})}\n\n"
             return
 
-        quiz_id = quiz_service.create_quiz(all_questions)
+        # Persist quiz — open a short-lived session for DB mode so we don't
+        # hold the request session across the entire LLM generation window.
+        if settings.use_database:
+            from app.database import async_session_factory
+            try:
+                async with async_session_factory() as session:
+                    quiz_id = await quiz_service.create_quiz(
+                        all_questions, session, source_type, topic, document_id
+                    )
+                    await session.commit()
+            except Exception as exc:
+                logger.error("Failed to persist quiz to DB, falling back to memory: %s", exc)
+                quiz_id = quiz_service._create_quiz_memory(all_questions)
+        else:
+            quiz_id = await quiz_service.create_quiz(all_questions)
+
         yield f"data: {json.dumps({'type': 'complete', 'quiz_id': quiz_id, 'total': len(all_questions)})}\n\n"
 
     # Add CORS origin explicitly — Starlette middleware may not inject it on StreamingResponse
@@ -158,8 +191,12 @@ async def generate_quiz_stream(
 
 
 @router.post("/{quiz_id}/answer", response_model=AnswerResponse)
-async def submit_answer(quiz_id: str, request: AnswerRequest):
-    quiz = quiz_service.get_quiz(quiz_id)
+async def submit_answer(
+    quiz_id: str,
+    request: AnswerRequest,
+    db: AsyncSession | None = Depends(get_db),
+):
+    quiz = await quiz_service.get_quiz(quiz_id, db)
     if not quiz:
         raise HTTPException(404, "Quiz not found")
 
@@ -169,18 +206,24 @@ async def submit_answer(quiz_id: str, request: AnswerRequest):
 
     result = await quiz_service.grade_answer(question, request.answer)
 
-    # Store the answer
-    quiz["answers"][request.question_id] = {
-        "user_answer": request.answer,
-        **result,
-    }
+    answer_data = {"user_answer": request.answer, **result}
+
+    if db is not None and settings.use_database:
+        # DB path: persist via save_answer (upserts the answer row)
+        await quiz_service.save_answer(request.question_id, answer_data, db)
+    else:
+        # In-memory path: quiz dict is a live reference stored in quiz_service.quizzes
+        quiz["answers"][request.question_id] = answer_data
 
     return AnswerResponse(**result)
 
 
 @router.get("/{quiz_id}/results", response_model=QuizResultsResponse)
-async def get_results(quiz_id: str):
-    quiz = quiz_service.get_quiz(quiz_id)
+async def get_results(
+    quiz_id: str,
+    db: AsyncSession | None = Depends(get_db),
+):
+    quiz = await quiz_service.get_quiz(quiz_id, db)
     if not quiz:
         raise HTTPException(404, "Quiz not found")
 

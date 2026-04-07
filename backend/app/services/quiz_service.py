@@ -2,8 +2,12 @@ import asyncio
 import hashlib
 import logging
 import uuid
+from typing import TYPE_CHECKING
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 from app.prompts.question_gen import (
     DOCUMENT_QUESTION_SYSTEM,
     DOCUMENT_QUESTION_USER,
@@ -206,7 +210,25 @@ class QuizService:
 
         return final
 
-    def create_quiz(self, questions: list[dict]) -> str:
+    # ------------------------------------------------------------------
+    # Quiz lifecycle — dual-path: in-memory (default) or PostgreSQL
+    # Controlled by settings.use_database. The router passes db=None
+    # when use_database=False.
+    # ------------------------------------------------------------------
+
+    async def create_quiz(
+        self,
+        questions: list[dict],
+        db: "AsyncSession | None" = None,
+        source_type: str = "topic",
+        topic: str | None = None,
+        document_id: str | None = None,
+    ) -> str:
+        if db is not None:
+            return await self._create_quiz_db(questions, db, source_type, topic, document_id)
+        return self._create_quiz_memory(questions)
+
+    def _create_quiz_memory(self, questions: list[dict]) -> str:
         quiz_id = str(uuid.uuid4())
         self.quizzes[quiz_id] = {
             "questions": {q["id"]: q for q in questions},
@@ -214,8 +236,123 @@ class QuizService:
         }
         return quiz_id
 
-    def get_quiz(self, quiz_id: str) -> dict | None:
+    async def _create_quiz_db(
+        self,
+        questions: list[dict],
+        db: "AsyncSession",
+        source_type: str,
+        topic: str | None,
+        document_id: str | None,
+    ) -> str:
+        from app.db_models import Quiz, Question as QuestionModel
+
+        quiz_id = uuid.uuid4()
+        quiz_row = Quiz(
+            id=quiz_id,
+            source_type=source_type,
+            topic=topic,
+            document_id=uuid.UUID(document_id) if document_id else None,
+        )
+        db.add(quiz_row)
+        await db.flush()  # get quiz_id into DB without committing
+
+        for q in questions:
+            db.add(QuestionModel(
+                id=uuid.UUID(q["id"]),
+                quiz_id=quiz_id,
+                type=q["type"],
+                question_text=q["question"],
+                options=q.get("options"),
+                correct_answer=q["correct_answer"],
+                explanation=q.get("explanation", ""),
+                difficulty=q.get("difficulty", "medium"),
+                source_chunk=q.get("source_chunk"),
+            ))
+        # Session commits in the router's get_db() dependency
+        logger.info(f"Quiz {quiz_id} persisted to DB with {len(questions)} questions")
+        return str(quiz_id)
+
+    async def get_quiz(
+        self, quiz_id: str, db: "AsyncSession | None" = None
+    ) -> dict | None:
+        if db is not None:
+            return await self._get_quiz_db(quiz_id, db)
         return self.quizzes.get(quiz_id)
+
+    async def _get_quiz_db(
+        self, quiz_id: str, db: "AsyncSession"
+    ) -> dict | None:
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+        from app.db_models import Quiz, Answer
+
+        # Expire all cached ORM objects so selectinload fetches fresh data from the DB.
+        # Without this, Question rows loaded during create_quiz have stale (empty)
+        # answer relationship state in the identity map.
+        await db.flush()
+        db.expire_all()
+
+        stmt = (
+            select(Quiz)
+            .where(Quiz.id == uuid.UUID(quiz_id))
+            .options(selectinload(Quiz.questions).selectinload(
+                __import__("app.db_models", fromlist=["Question"]).Question.answer
+            ))
+        )
+        result = await db.execute(stmt)
+        quiz_row = result.scalar_one_or_none()
+        if quiz_row is None:
+            return None
+
+        questions_dict: dict[str, dict] = {}
+        answers_dict: dict[str, dict] = {}
+        for q in quiz_row.questions:
+            q_dict = {
+                "id": str(q.id),
+                "type": q.type,
+                "question": q.question_text,
+                "options": q.options,
+                "correct_answer": q.correct_answer,
+                "explanation": q.explanation,
+                "difficulty": q.difficulty,
+                "source_chunk": q.source_chunk,
+            }
+            questions_dict[str(q.id)] = q_dict
+            if q.answer is not None:
+                answers_dict[str(q.id)] = {
+                    "user_answer": q.answer.user_answer,
+                    "is_correct": q.answer.is_correct,
+                    "score": q.answer.score,
+                    "feedback": q.answer.feedback,
+                    "correct_answer": q.correct_answer,
+                }
+        return {"questions": questions_dict, "answers": answers_dict}
+
+    async def save_answer(
+        self,
+        question_id: str,
+        answer_data: dict,
+        db: "AsyncSession | None" = None,
+    ) -> None:
+        """Persist an answer row (DB path only — in-memory path stores in quiz dict directly)."""
+        if db is None:
+            return
+        from app.db_models import Answer
+
+        # Upsert: delete existing answer for this question if any, then insert
+        from sqlalchemy import select, delete
+        await db.execute(
+            delete(Answer).where(Answer.question_id == uuid.UUID(question_id))
+        )
+        db.add(Answer(
+            id=uuid.uuid4(),
+            question_id=uuid.UUID(question_id),
+            user_answer=answer_data["user_answer"],
+            is_correct=answer_data["is_correct"],
+            score=answer_data["score"],
+            feedback=answer_data.get("feedback", ""),
+        ))
+        await db.flush()  # make the new row visible in this session's identity map
 
     async def grade_answer(self, question: dict, user_answer: str) -> dict:
         q_type = question["type"]

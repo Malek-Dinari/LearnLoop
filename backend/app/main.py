@@ -1,10 +1,15 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.config import settings
 from app.routers import documents, quiz, chat
 from app.services.llm_service import llm_service
 from app.services.cache_service import cache
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LearnLoop API", version="0.1.0")
 
@@ -21,6 +26,28 @@ app.include_router(quiz.router)
 app.include_router(chat.router)
 
 
+@app.on_event("startup")
+async def startup() -> None:
+    if settings.use_database:
+        from app.database import engine
+        try:
+            async with engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            logger.info("Database connection verified")
+        except Exception as exc:
+            logger.error("Database connection failed: %s", exc)
+            raise RuntimeError(f"Cannot start: database unreachable — {exc}") from exc
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    if hasattr(cache, "close"):
+        await cache.close()  # type: ignore[attr-defined]
+    if settings.use_database:
+        from app.database import engine
+        await engine.dispose()
+
+
 @app.get("/api/health")
 async def health_check():
     llm_ok = await llm_service.health_check()
@@ -33,13 +60,9 @@ async def health_check():
         "llm": "connected" if llm_ok else "disconnected",
         "provider": settings.llm_provider,
         "model": model,
+        "database": "enabled" if settings.use_database else "in-memory",
+        "cache": settings.cache_backend,
     }
-
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    if hasattr(cache, "close"):
-        await cache.close()  # type: ignore[attr-defined]
 
 
 @app.delete("/api/cache")

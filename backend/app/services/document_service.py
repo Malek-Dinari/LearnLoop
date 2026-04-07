@@ -1,9 +1,13 @@
 import os
 import uuid
+from typing import TYPE_CHECKING
 
 import fitz  # PyMuPDF
 
 from app.config import settings
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DocumentService:
@@ -80,18 +84,26 @@ class DocumentService:
         combined = "\n\n".join(chunks)
         return combined[:2000]
 
-    async def process_upload(self, filename: str, content: bytes) -> dict:
+    async def process_upload(
+        self,
+        filename: str,
+        content: bytes,
+        db: "AsyncSession | None" = None,
+    ) -> dict:
         document_id, file_path = await self.save_file(filename, content)
         file_type = "pdf" if filename.lower().endswith(".pdf") else "txt"
         text = await self.extract_text(file_path, file_type)
         chunks = self.chunk_text(text)
 
-        self.documents[document_id] = {
-            "filename": filename,
-            "file_path": file_path,
-            "chunks": chunks,
-            "text": text,
-        }
+        if db is not None:
+            await self._persist_document(document_id, filename, file_path, text, chunks, db)
+        else:
+            self.documents[document_id] = {
+                "filename": filename,
+                "file_path": file_path,
+                "chunks": chunks,
+                "text": text,
+            }
 
         return {
             "document_id": document_id,
@@ -99,8 +111,54 @@ class DocumentService:
             "chunk_count": len(chunks),
         }
 
-    def get_document(self, document_id: str) -> dict | None:
+    async def _persist_document(
+        self,
+        document_id: str,
+        filename: str,
+        file_path: str,
+        text: str,
+        chunks: list[str],
+        db: "AsyncSession",
+    ) -> None:
+        from app.db_models import Document
+
+        db.add(Document(
+            id=uuid.UUID(document_id),
+            filename=filename,
+            file_path=file_path,
+            text=text,
+            chunks=chunks,
+            chunk_count=len(chunks),
+        ))
+        await db.flush()
+
+    async def get_document(
+        self,
+        document_id: str,
+        db: "AsyncSession | None" = None,
+    ) -> dict | None:
+        if db is not None:
+            return await self._get_document_db(document_id, db)
         return self.documents.get(document_id)
+
+    async def _get_document_db(
+        self, document_id: str, db: "AsyncSession"
+    ) -> dict | None:
+        from sqlalchemy import select
+        from app.db_models import Document
+
+        result = await db.execute(
+            select(Document).where(Document.id == uuid.UUID(document_id))
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            return None
+        return {
+            "filename": row.filename,
+            "file_path": row.file_path,
+            "chunks": row.chunks,
+            "text": row.text,
+        }
 
 
 document_service = DocumentService()
