@@ -39,7 +39,9 @@ class GroqLLMService(BaseLLMService):
         messages: list[dict[str, str]] = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": truncate_prompt(prompt)})
+        # Groq supports 128K context — do NOT truncate here. Content truncation
+        # is already applied by the caller (_generate_batch) before formatting.
+        messages.append({"role": "user", "content": prompt})
 
         last_error: Exception | None = None
         for attempt in range(3):
@@ -88,9 +90,20 @@ class GroqLLMService(BaseLLMService):
     ) -> dict | list:
         effective_max_tokens = num_predict or settings.llm_num_predict_json
         messages: list[dict[str, str]] = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": truncate_prompt(prompt)})
+
+        # Enforce JSON output in the system prompt so the instruction can never
+        # be accidentally absent (Ollama truncation doesn't apply here, but belt-
+        # and-suspenders for prompt engineering reliability with Groq models).
+        json_enforcement = (
+            "You MUST respond with ONLY valid JSON — no markdown, no code fences, "
+            "no explanations, no prose. Raw JSON only."
+        )
+        effective_system = f"{system_prompt}\n\n{json_enforcement}".strip() if system_prompt else json_enforcement
+        messages.append({"role": "system", "content": effective_system})
+
+        # Groq supports 128K context — do NOT truncate here. Content truncation
+        # is already applied by the caller (_generate_batch) before formatting.
+        messages.append({"role": "user", "content": prompt})
 
         for attempt in range(3):
             t0 = time.monotonic()

@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     llm_num_ctx: int = 8192            # context window (override in .env for model size)
 
     # Quiz generation
-    quiz_batch_size: int = 2           # questions per LLM call (reduce for smaller models)
+    quiz_batch_size: int = 1           # questions per LLM call (1 = safest for free-tier Groq)
 
     # Database (PostgreSQL via asyncpg, or SQLite for tests)
     database_url: str = "postgresql+asyncpg://learnloop:learnloop@localhost:5432/learnloop"
