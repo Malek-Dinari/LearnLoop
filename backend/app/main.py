@@ -24,11 +24,22 @@ app.include_router(chat.router)
 @app.get("/api/health")
 async def health_check():
     llm_ok = await llm_service.health_check()
+    model = (
+        settings.groq_model if settings.llm_provider == "groq"
+        else settings.ollama_model
+    )
     return {
         "status": "ok" if llm_ok else "degraded",
         "llm": "connected" if llm_ok else "disconnected",
-        "model": settings.ollama_model,
+        "provider": settings.llm_provider,
+        "model": model,
     }
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    if hasattr(cache, "close"):
+        await cache.close()  # type: ignore[attr-defined]
 
 
 @app.delete("/api/cache")

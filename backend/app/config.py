@@ -2,8 +2,18 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # LLM provider: "ollama" or "groq"
+    llm_provider: str = "ollama"
+
+    # Ollama settings (used when llm_provider == "ollama")
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3.5:latest"
+
+    # Groq settings (used when llm_provider == "groq")
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+    groq_request_timeout: float = 30.0
+
     upload_dir: str = "./uploads"
     max_file_size_mb: int = 50
     default_num_questions: int = 10
@@ -19,7 +29,9 @@ class Settings(BaseSettings):
     # Quiz generation
     quiz_batch_size: int = 2           # questions per LLM call (reduce for smaller models)
 
-    # Caching
+    # Cache backend: "memory" or "redis"
+    cache_backend: str = "memory"
+    redis_url: str = "redis://localhost:6379/0"
     cache_ttl_seconds: int = 1800
 
     model_config = {"env_file": ".env"}

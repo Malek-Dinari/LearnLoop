@@ -228,5 +228,14 @@ class OllamaLLMService(BaseLLMService):
             return False
 
 
-# Singleton instance
-llm_service = OllamaLLMService()
+def create_llm_service() -> BaseLLMService:
+    """Factory: returns the correct LLM service based on settings.llm_provider."""
+    if settings.llm_provider == "groq":
+        # Lazy import — avoids requiring `groq` package when using Ollama
+        from app.services.groq_llm_service import GroqLLMService
+        return GroqLLMService()
+    return OllamaLLMService()
+
+
+# Singleton instance — used throughout the app via `from app.services.llm_service import llm_service`
+llm_service: BaseLLMService = create_llm_service()
