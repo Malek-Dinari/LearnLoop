@@ -1,21 +1,17 @@
 """
-In-memory cache with TTL support.
+Cache abstraction with pluggable backends (in-memory or Redis).
 
-Designed to be a drop-in replaced by a RedisCache later:
-    class RedisCache:
-        async def get(self, key): ...
-        async def set(self, key, value, ttl): ...
-        async def delete(self, key): ...
-        async def clear(self): ...
-    cache = RedisCache(url=settings.redis_url)
-
-Just swap the singleton at the bottom of this file.
+Backend is selected via settings.cache_backend:
+  - "memory" → InMemoryCache (default, no external deps)
+  - "redis"  → RedisCache (requires Redis server + redis-py)
 """
 import hashlib
 import json
 import logging
 import time
 from typing import Any, Protocol, runtime_checkable
+
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -77,5 +73,15 @@ def make_cache_key(prefix: str, **kwargs: Any) -> str:
     return f"{prefix}:{digest}"
 
 
-# Singleton — swap this with RedisCache when ready
-cache: CacheBackend = InMemoryCache()
+def create_cache() -> CacheBackend:
+    """Factory: returns the correct cache backend based on settings.cache_backend."""
+    if settings.cache_backend == "redis":
+        from app.services.redis_cache import RedisCache
+        logger.info(f"Using Redis cache at {settings.redis_url}")
+        return RedisCache(url=settings.redis_url)
+    logger.info("Using in-memory cache")
+    return InMemoryCache()
+
+
+# Singleton — used throughout the app via `from app.services.cache_service import cache`
+cache: CacheBackend = create_cache()
