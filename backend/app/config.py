@@ -47,6 +47,10 @@ class Settings(BaseSettings):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url
 
+    # Logging
+    log_level: str = "INFO"
+    log_format: str = "text"  # "text" for dev, "json" for production
+
     model_config = {"env_file": ".env"}
 
 

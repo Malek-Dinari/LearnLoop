@@ -48,6 +48,9 @@ services:
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
       # CORS — allow frontend container
       CORS_ORIGINS: "http://localhost:3000,http://frontend:3000"
+      # Logging
+      LOG_FORMAT: json
+      LOG_LEVEL: INFO
     volumes:
       - uploads:/app/uploads
     depends_on:

@@ -5,14 +5,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.config import settings
+from app.logging_config import setup_logging
+from app.middleware import RequestIDMiddleware
 from app.routers import documents, quiz, chat
 from app.services.llm_service import llm_service
 from app.services.cache_service import cache
+
+# Configure logging before anything else creates a logger
+setup_logging(log_level=settings.log_level, log_format=settings.log_format)
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LearnLoop API", version="0.1.0")
 
+# RequestIDMiddleware must come before CORSMiddleware in the stack
+# (outermost middleware is added last in Starlette)
+app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins.split(","),
