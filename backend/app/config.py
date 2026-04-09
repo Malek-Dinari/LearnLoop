@@ -41,10 +41,14 @@ class Settings(BaseSettings):
 
     @property
     def async_database_url(self) -> str:
-        """Convert Railway's postgresql:// to postgresql+asyncpg:// if needed."""
+        """Normalise any postgres:// / postgresql:// URL to postgresql+asyncpg://."""
         url = self.database_url
+        if "+asyncpg" in url:
+            return url  # already correct
+        if url.startswith("postgres://"):
+            return "postgresql+asyncpg://" + url[len("postgres://"):]
         if url.startswith("postgresql://"):
-            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return "postgresql+asyncpg://" + url[len("postgresql://"):]
         return url
 
     # Logging
