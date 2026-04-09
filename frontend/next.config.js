@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Required for the Docker multi-stage build (node server.js)
-  output: "standalone",
+  // "standalone" is required for Docker (node server.js), but breaks Vercel.
+  // Set NEXT_OUTPUT=standalone in Docker builds only.
+  ...(process.env.NEXT_OUTPUT === "standalone" && { output: "standalone" }),
 
   async rewrites() {
     // In Docker, BACKEND_INTERNAL_URL points to the backend container.

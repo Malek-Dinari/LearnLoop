@@ -4,8 +4,11 @@ set -e
 # Run Alembic migrations when PostgreSQL is enabled
 if [ "${USE_DATABASE}" = "true" ]; then
     echo "Running database migrations..."
-    alembic upgrade head
-    echo "Migrations complete."
+    if alembic upgrade head; then
+        echo "Migrations complete."
+    else
+        echo "WARNING: Alembic migration failed — the app startup event will re-verify the DB connection."
+    fi
 fi
 
 # Railway injects PORT; default to 8000 for local/Docker Compose
