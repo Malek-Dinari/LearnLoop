@@ -204,6 +204,9 @@ async def submit_answer(
     if not question:
         raise HTTPException(404, "Question not found")
 
+    if not request.answer.strip():
+        raise HTTPException(400, "Answer cannot be empty")
+
     result = await quiz_service.grade_answer(question, request.answer)
 
     answer_data = {"user_answer": request.answer, **result}
@@ -223,6 +226,14 @@ async def get_results(
     quiz_id: str,
     db: AsyncSession | None = Depends(get_db),
 ):
+    # Check cache first to avoid LLM re-call on page refresh
+    from app.services.cache_service import cache, make_cache_key
+
+    results_cache_key = make_cache_key("results", quiz_id=quiz_id)
+    cached = await cache.get(results_cache_key)
+    if cached is not None:
+        return QuizResultsResponse(**cached)
+
     quiz = await quiz_service.get_quiz(quiz_id, db)
     if not quiz:
         raise HTTPException(404, "Quiz not found")
@@ -234,4 +245,8 @@ async def get_results(
     ]
 
     summary = await quiz_service.generate_quiz_summary(questions_list, answers_list)
+
+    # Cache results so page refresh doesn't re-call the LLM
+    await cache.set(results_cache_key, summary, ttl=3600)
+
     return QuizResultsResponse(**summary)

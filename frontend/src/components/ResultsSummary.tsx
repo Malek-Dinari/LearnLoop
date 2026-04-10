@@ -1,16 +1,24 @@
 "use client";
 
 import { QuizResults, Question } from "@/lib/types";
-import { CheckCircle, XCircle, MessageCircle } from "lucide-react";
+import { CheckCircle, XCircle, MessageCircle, Layers, Loader2 } from "lucide-react";
 import clsx from "clsx";
 
 interface Props {
   results: QuizResults;
   onCoach: (question: Question, userAnswer: string) => void;
   onNewQuiz: () => void;
+  onGenerateFlashcards?: () => void;
+  flashcardsLoading?: boolean;
 }
 
-export default function ResultsSummary({ results, onCoach, onNewQuiz }: Props) {
+export default function ResultsSummary({
+  results,
+  onCoach,
+  onNewQuiz,
+  onGenerateFlashcards,
+  flashcardsLoading,
+}: Props) {
   const pct = results.percentage;
   const color = pct >= 70 ? "text-teal" : pct >= 40 ? "text-amber" : "text-coral";
 
@@ -102,7 +110,21 @@ export default function ResultsSummary({ results, onCoach, onNewQuiz }: Props) {
         ))}
       </div>
 
-      <div className="text-center">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+        {onGenerateFlashcards && (
+          <button
+            onClick={onGenerateFlashcards}
+            disabled={flashcardsLoading}
+            className="btn-primary flex items-center gap-2"
+          >
+            {flashcardsLoading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Layers size={16} />
+            )}
+            {flashcardsLoading ? "Generating..." : "Generate Flashcards"}
+          </button>
+        )}
         <button onClick={onNewQuiz} className="btn-secondary">
           Start New Quiz
         </button>

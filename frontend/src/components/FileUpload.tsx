@@ -15,8 +15,8 @@ export default function FileUpload({ onFileSelect, disabled }: Props) {
   const handleFile = useCallback(
     (file: File) => {
       const ext = file.name.split(".").pop()?.toLowerCase();
-      if (ext !== "pdf" && ext !== "txt") {
-        alert("Only PDF and TXT files are supported");
+      if (!["pdf", "txt", "docx", "pptx"].includes(ext ?? "")) {
+        alert("Only PDF, TXT, DOCX, and PPTX files are supported");
         return;
       }
       setSelectedFile(file);
@@ -50,7 +50,7 @@ export default function FileUpload({ onFileSelect, disabled }: Props) {
           if (disabled) return;
           const input = document.createElement("input");
           input.type = "file";
-          input.accept = ".pdf,.txt";
+          input.accept = ".pdf,.txt,.docx,.pptx";
           input.onchange = (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) handleFile(file);
@@ -76,7 +76,7 @@ export default function FileUpload({ onFileSelect, disabled }: Props) {
           <div className="space-y-2">
             <Upload size={32} className="mx-auto text-gray-400" />
             <p className="text-gray-600">
-              Drag & drop a <strong>PDF</strong> or <strong>TXT</strong> file here
+              Drag & drop a <strong>PDF</strong>, <strong>TXT</strong>, <strong>DOCX</strong>, or <strong>PPTX</strong> file here
             </p>
             <p className="text-sm text-gray-400">or click to browse</p>
           </div>

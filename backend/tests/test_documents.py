@@ -41,3 +41,59 @@ async def test_process_upload_txt(doc_service, tmp_path):
     assert "document_id" in result
     assert result["filename"] == "test.txt"
     assert result["chunk_count"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_process_upload_docx(doc_service, tmp_path):
+    from docx import Document as DocxDocument
+
+    doc_service.upload_dir = str(tmp_path)
+    # Create a minimal DOCX in memory
+    doc = DocxDocument()
+    doc.add_paragraph("This is a test paragraph about machine learning.")
+    doc.add_paragraph("Neural networks are a key concept.")
+    docx_path = tmp_path / "test.docx"
+    doc.save(str(docx_path))
+    content = docx_path.read_bytes()
+
+    result = await doc_service.process_upload("test.docx", content)
+    assert "document_id" in result
+    assert result["filename"] == "test.docx"
+    assert result["chunk_count"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_process_upload_pptx(doc_service, tmp_path):
+    from pptx import Presentation
+
+    doc_service.upload_dir = str(tmp_path)
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text = "Test Slide"
+    slide.placeholders[1].text = "This is test content for PPTX extraction."
+    pptx_path = tmp_path / "test.pptx"
+    prs.save(str(pptx_path))
+    content = pptx_path.read_bytes()
+
+    result = await doc_service.process_upload("test.pptx", content)
+    assert "document_id" in result
+    assert result["filename"] == "test.pptx"
+    assert result["chunk_count"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_extract_corrupt_docx(doc_service, tmp_path):
+    from app.exceptions import DocumentProcessingError
+
+    doc_service.upload_dir = str(tmp_path)
+    with pytest.raises(DocumentProcessingError):
+        await doc_service.process_upload("bad.docx", b"not-a-real-docx")
+
+
+@pytest.mark.asyncio
+async def test_extract_empty_text(doc_service, tmp_path):
+    from app.exceptions import DocumentProcessingError
+
+    doc_service.upload_dir = str(tmp_path)
+    with pytest.raises(DocumentProcessingError, match="no extractable text"):
+        await doc_service.process_upload("empty.txt", b"   ")

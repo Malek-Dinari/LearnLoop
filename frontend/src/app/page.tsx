@@ -8,6 +8,8 @@ import QuizProgress from "@/components/QuizProgress";
 import QuizCard from "@/components/QuizCard";
 import ResultsSummary from "@/components/ResultsSummary";
 import CoachingChat from "@/components/CoachingChat";
+import FlashcardDeck from "@/components/FlashcardDeck";
+import StudyChat from "@/components/StudyChat";
 import { Loader2, Settings, BookOpen, Upload } from "lucide-react";
 
 type Tab = "topic" | "document";
@@ -143,8 +145,21 @@ export default function Home() {
           results={quiz.results}
           onCoach={quiz.startCoaching}
           onNewQuiz={quiz.resetQuiz}
+          onGenerateFlashcards={quiz.generateFlashcardsForQuiz}
+          flashcardsLoading={quiz.flashcardsLoading}
         />
-        {quiz.state === "COMPLETE" && quiz.coachingQuestion && null}
+        {quiz.showFlashcards && quiz.flashcards.length > 0 && (
+          <FlashcardDeck
+            cards={quiz.flashcards}
+            onClose={() => quiz.setShowFlashcards(false)}
+          />
+        )}
+        <StudyChat
+          messages={quiz.studyMessages}
+          loading={quiz.studyLoading}
+          onSend={quiz.sendStudyChat}
+          quizActive={true}
+        />
       </>
     );
   }
@@ -158,6 +173,14 @@ export default function Home() {
             results={quiz.results}
             onCoach={quiz.startCoaching}
             onNewQuiz={quiz.resetQuiz}
+            onGenerateFlashcards={quiz.generateFlashcardsForQuiz}
+            flashcardsLoading={quiz.flashcardsLoading}
+          />
+        )}
+        {quiz.showFlashcards && quiz.flashcards.length > 0 && (
+          <FlashcardDeck
+            cards={quiz.flashcards}
+            onClose={() => quiz.setShowFlashcards(false)}
           />
         )}
         <CoachingChat
@@ -234,6 +257,12 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <StudyChat
+        messages={quiz.studyMessages}
+        loading={quiz.studyLoading}
+        onSend={quiz.sendStudyChat}
+      />
 
       {/* Settings */}
       <div className="card max-w-2xl mx-auto">

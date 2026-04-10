@@ -6,6 +6,7 @@ import {
   DocumentUploadResponse,
   ChatMessage,
   SSEEvent,
+  Flashcard,
 } from "./types";
 
 // Use relative /api so requests go through the Next.js dev proxy (same-origin, no CORS).
@@ -111,6 +112,34 @@ export function generateQuizStream(
   };
 
   return () => es.close();
+}
+
+export async function generateFlashcards(
+  sourceType: "quiz" | "document",
+  id: string,
+  numCards = 10
+): Promise<Flashcard[]> {
+  const body =
+    sourceType === "quiz"
+      ? { source_type: "quiz", quiz_id: id, num_cards: numCards }
+      : { source_type: "document", document_id: id, num_cards: numCards };
+  const res = await request<{ flashcards: Flashcard[] }>("/flashcards/generate", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return res.flashcards;
+}
+
+export async function sendStudyChatMessage(
+  message: string,
+  conversation: ChatMessage[],
+  context = "",
+  quizId?: string
+): Promise<{ response: string }> {
+  return request<{ response: string }>("/chat/study", {
+    method: "POST",
+    body: JSON.stringify({ message, conversation, context, quiz_id: quizId }),
+  });
 }
 
 export async function sendCoachMessage(

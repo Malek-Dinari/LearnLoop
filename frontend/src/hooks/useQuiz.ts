@@ -8,6 +8,7 @@ import {
   QuizResults,
   ChatMessage,
   SSEEvent,
+  Flashcard,
 } from "@/lib/types";
 import {
   generateQuizStream,
@@ -15,6 +16,8 @@ import {
   getQuizResults,
   uploadDocument,
   sendCoachMessage,
+  generateFlashcards,
+  sendStudyChatMessage,
 } from "@/lib/api";
 
 interface AnswerRecord {
@@ -44,6 +47,15 @@ export function useQuiz() {
   const [coachingUserAnswer, setCoachingUserAnswer] = useState("");
   const [coachingMessages, setCoachingMessages] = useState<ChatMessage[]>([]);
   const [coachingLoading, setCoachingLoading] = useState(false);
+
+  // Flashcard state
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [flashcardsLoading, setFlashcardsLoading] = useState(false);
+  const [showFlashcards, setShowFlashcards] = useState(false);
+
+  // Study chat state
+  const [studyMessages, setStudyMessages] = useState<ChatMessage[]>([]);
+  const [studyLoading, setStudyLoading] = useState(false);
 
   // SSE cleanup ref — holds the close() function returned by generateQuizStream
   const streamCleanupRef = useRef<(() => void) | null>(null);
@@ -235,6 +247,38 @@ export function useQuiz() {
     setState("COMPLETE");
   }, []);
 
+  const generateFlashcardsForQuiz = useCallback(async () => {
+    if (!quizId) return;
+    setFlashcardsLoading(true);
+    try {
+      const cards = await generateFlashcards("quiz", quizId);
+      setFlashcards(cards);
+      setShowFlashcards(true);
+    } catch {
+      // silent — user can retry
+    }
+    setFlashcardsLoading(false);
+  }, [quizId]);
+
+  const sendStudyChat = useCallback(
+    async (message: string) => {
+      setStudyLoading(true);
+      const updated: ChatMessage[] = [...studyMessages, { role: "user", content: message }];
+      setStudyMessages(updated);
+      try {
+        const res = await sendStudyChatMessage(message, updated, "", quizId || undefined);
+        setStudyMessages((prev) => [...prev, { role: "assistant", content: res.response }]);
+      } catch {
+        setStudyMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Sorry, I had trouble responding. Please try again." },
+        ]);
+      }
+      setStudyLoading(false);
+    },
+    [studyMessages, quizId]
+  );
+
   const resetQuiz = useCallback(() => {
     if (streamCleanupRef.current) {
       streamCleanupRef.current();
@@ -251,6 +295,11 @@ export function useQuiz() {
     setStreamProgress(null);
     setCoachingQuestion(null);
     setCoachingMessages([]);
+    setFlashcards([]);
+    setFlashcardsLoading(false);
+    setShowFlashcards(false);
+    setStudyMessages([]);
+    setStudyLoading(false);
   }, []);
 
   return {
@@ -275,6 +324,14 @@ export function useQuiz() {
     startCoaching,
     sendCoach,
     exitCoaching,
+    flashcards,
+    flashcardsLoading,
+    showFlashcards,
+    setShowFlashcards,
+    generateFlashcardsForQuiz,
+    studyMessages,
+    studyLoading,
+    sendStudyChat,
     resetQuiz,
   };
 }

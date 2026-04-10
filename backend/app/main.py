@@ -7,7 +7,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.logging_config import setup_logging
 from app.middleware import RequestIDMiddleware
-from app.routers import documents, quiz, chat
+from app.routers import documents, quiz, chat, flashcards
 from app.services.llm_service import llm_service
 from app.services.cache_service import cache
 
@@ -32,6 +32,7 @@ app.add_middleware(
 app.include_router(documents.router)
 app.include_router(quiz.router)
 app.include_router(chat.router)
+app.include_router(flashcards.router)
 
 
 @app.on_event("startup")

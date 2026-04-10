@@ -67,6 +67,13 @@ export type QuizState =
   | "COMPLETE"
   | "COACHING";
 
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  category: string;
+}
+
 // SSE event types from GET /api/quiz/generate/stream
 export interface SSEStartEvent {
   type: "start";

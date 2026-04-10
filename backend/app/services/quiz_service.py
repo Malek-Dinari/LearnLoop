@@ -354,19 +354,27 @@ class QuizService:
         ))
         await db.flush()  # make the new row visible in this session's identity map
 
+    @staticmethod
+    def _normalize_mcq_answer(answer: str) -> str:
+        """Normalize an MCQ/true_false answer for comparison.
+
+        Strips whitespace, lowercases, and removes common option prefixes
+        like "A)", "b.", "1)" so that "A) Photosynthesis" matches "photosynthesis".
+        """
+        import re
+        norm = answer.strip().lower()
+        norm = re.sub(r"^[a-d1-4][.)]\s*", "", norm)
+        return norm
+
     async def grade_answer(self, question: dict, user_answer: str) -> dict:
         q_type = question["type"]
         correct = question["correct_answer"]
 
         if q_type in ("mcq", "true_false"):
-            user_norm = user_answer.strip().lower()
-            correct_norm = correct.strip().lower()
+            user_norm = self._normalize_mcq_answer(user_answer)
+            correct_norm = self._normalize_mcq_answer(correct)
 
-            is_correct = (
-                user_norm == correct_norm
-                or user_norm in correct_norm
-                or correct_norm in user_norm
-            )
+            is_correct = user_norm == correct_norm
 
             return {
                 "is_correct": is_correct,

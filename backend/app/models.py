@@ -40,7 +40,7 @@ class QuizGenerateResponse(BaseModel):
 
 class AnswerRequest(BaseModel):
     question_id: str
-    answer: str
+    answer: str = Field(max_length=5000)
 
 
 class AnswerResponse(BaseModel):
@@ -63,9 +63,42 @@ class QuizResultsResponse(BaseModel):
 class CoachRequest(BaseModel):
     question: dict
     user_answer: str
-    conversation: list[dict] = Field(default_factory=list)
-    message: str
+    conversation: list[dict] = Field(default_factory=list, max_length=100)
+    message: str = Field(max_length=2000)
 
 
 class CoachResponse(BaseModel):
+    response: str
+
+
+# ── Flashcard schemas ───────────────────────────────────────────────────────
+
+class FlashcardGenerateRequest(BaseModel):
+    source_type: str = Field(..., pattern="^(quiz|document)$")
+    quiz_id: Optional[str] = None
+    document_id: Optional[str] = None
+    num_cards: int = Field(default=10, ge=1, le=30)
+
+
+class Flashcard(BaseModel):
+    id: str
+    front: str
+    back: str
+    category: str
+
+
+class FlashcardGenerateResponse(BaseModel):
+    flashcards: list[Flashcard]
+
+
+# ── Study chat schemas ──────────────────────────────────────────────────────
+
+class StudyChatRequest(BaseModel):
+    context: str = Field(default="", max_length=2000)
+    conversation: list[dict] = Field(default_factory=list, max_length=100)
+    message: str = Field(max_length=2000)
+    quiz_id: Optional[str] = None
+
+
+class StudyChatResponse(BaseModel):
     response: str
