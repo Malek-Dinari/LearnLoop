@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     # Groq settings (used when llm_provider == "groq")
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
-    groq_request_timeout: float = 30.0
+    groq_request_timeout: float = 60.0          # 70B needs more headroom than instant
+    # Free-tier rate limit pacing: sleep this many seconds between SSE batches
+    # when using Groq. 6 000 TPM / ~2 000 tokens per request ≈ 3 req/min safe.
+    # 20 s between calls → ≤ 3 calls in any 60 s window → stays under limit.
+    # Set to 0 to disable (e.g. paid tier).
+    groq_inter_batch_sleep: float = 20.0
 
     upload_dir: str = "./uploads"
     max_file_size_mb: int = 50
@@ -20,7 +25,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # LLM performance controls
-    llm_num_predict_json: int = 1024   # was 512 — not enough for 3-question batches
+    # With batch_size=1 a single MCQ question needs ~200-400 output tokens.
+    # 600 is generous; 1500 wasted 3× the Groq TPM budget unnecessarily.
+    llm_num_predict_json: int = 600
     llm_num_predict_text: int = 1024
     llm_request_timeout: float = 60.0  # per attempt; 3 retries = 180s max
     llm_max_prompt_chars: int = 8000   # conservative; keeps total tokens well within num_ctx

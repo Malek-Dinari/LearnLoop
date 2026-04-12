@@ -135,7 +135,10 @@ class QuizService:
             return questions
 
         except Exception as exc:
-            logger.warning(f"Batch {batch_index} failed: {exc}")
+            logger.warning(
+                f"Batch {batch_index} failed ({type(exc).__name__}): {exc}",
+                exc_info=True,
+            )
             return []
 
     async def generate_questions(
@@ -191,7 +194,10 @@ class QuizService:
                 logger.warning(f"A batch raised an exception: {r}")
 
         if not all_questions:
-            raise RuntimeError("All question generation batches failed. Check Ollama connectivity.")
+            raise RuntimeError(
+                f"All question generation batches failed. "
+                f"Check {settings.llm_provider.upper()} connectivity and API key."
+            )
 
         # Deduplicate by question text
         seen: set[str] = set()

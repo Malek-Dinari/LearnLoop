@@ -122,6 +122,14 @@ async def generate_quiz_stream(
         batches.append(size)
         remaining -= size
 
+    # Inter-batch sleep: Groq free tier has a tight tokens-per-minute limit.
+    # Spacing calls out prevents bursting through the 6 000 TPM budget.
+    inter_batch_sleep = (
+        settings.groq_inter_batch_sleep
+        if settings.llm_provider == "groq"
+        else 0.0
+    )
+
     async def event_generator():
         yield f"data: {json.dumps({'type': 'start', 'total': num_questions, 'batches': len(batches)})}\n\n"
 
@@ -129,8 +137,15 @@ async def generate_quiz_stream(
         seen_questions: set[str] = set()
 
         for i, size in enumerate(batches):
-            # Send keep-alive ping before each batch so the connection doesn't
-            # time out while the LLM is generating (can take 30-45s per batch).
+            # Pace Groq calls to stay under the free-tier TPM rate limit.
+            # Sleep BEFORE each batch (except the first) so the client
+            # receives the first question as quickly as possible.
+            if i > 0 and inter_batch_sleep > 0:
+                logger.debug("Inter-batch sleep %.0fs (Groq rate-limit pacing)", inter_batch_sleep)
+                await asyncio.sleep(inter_batch_sleep)
+
+            # Send keep-alive ping before each LLM call so the connection
+            # doesn't time out while the model generates (can take 30-60s).
             yield ": keep-alive\n\n"
 
             # Check if client disconnected
@@ -152,7 +167,8 @@ async def generate_quiz_stream(
                     yield f"data: {json.dumps({'type': 'question', 'question': q, 'index': len(all_questions) - 1})}\n\n"
 
         if not all_questions:
-            yield f"data: {json.dumps({'type': 'error', 'message': 'All batches failed. Check Ollama connectivity.', 'fatal': True})}\n\n"
+            provider = settings.llm_provider.upper()
+            yield f"data: {json.dumps({'type': 'error', 'message': f'All batches failed. Check {provider} connectivity and API key.', 'fatal': True})}\n\n"
             return
 
         # Persist quiz — open a short-lived session for DB mode so we don't

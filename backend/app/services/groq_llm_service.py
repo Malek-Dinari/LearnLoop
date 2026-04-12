@@ -61,22 +61,28 @@ class GroqLLMService(BaseLLMService):
                 )
                 return content
             except RateLimitError as exc:
-                logger.warning(f"Groq rate limit (attempt {attempt + 1}/3): {exc}")
+                # Groq free tier: 6 000 TPM. A 2-4 s sleep never clears the
+                # 1-minute window — wait 30 s then 60 s so the window resets.
+                wait = 30 * (attempt + 1)  # 30 s, 60 s
+                logger.warning(
+                    f"Groq rate limit (attempt {attempt + 1}/3) — "
+                    f"sleeping {wait}s before retry: {exc}"
+                )
                 last_error = exc
                 if attempt < 2:
-                    await asyncio.sleep(2 * (attempt + 1))
+                    await asyncio.sleep(wait)
                     continue
             except APITimeoutError as exc:
                 logger.warning(f"Groq timeout (attempt {attempt + 1}/3): {exc}")
                 last_error = exc
                 if attempt < 2:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(5)
                     continue
             except APIError as exc:
                 logger.error(f"Groq API error (attempt {attempt + 1}/3): {exc}")
                 last_error = exc
                 if attempt < 2:
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                     continue
 
         raise last_error  # type: ignore[misc]
@@ -141,15 +147,19 @@ class GroqLLMService(BaseLLMService):
                     f"(model={self.model}, chars_out={len(raw)})"
                 )
             except RateLimitError as exc:
-                logger.warning(f"Groq rate limit (attempt {attempt + 1}/3): {exc}")
+                wait = 30 * (attempt + 1)  # 30 s, 60 s
+                logger.warning(
+                    f"Groq rate limit (attempt {attempt + 1}/3) — "
+                    f"sleeping {wait}s before retry: {exc}"
+                )
                 if attempt < 2:
-                    await asyncio.sleep(2 * (attempt + 1))
+                    await asyncio.sleep(wait)
                     continue
                 raise
             except (APITimeoutError, APIError) as exc:
                 logger.warning(f"Groq error (attempt {attempt + 1}/3): {exc}")
                 if attempt < 2:
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                     continue
                 raise
 
