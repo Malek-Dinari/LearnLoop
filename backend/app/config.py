@@ -35,6 +35,8 @@ class Settings(BaseSettings):
 
     # Quiz generation
     quiz_batch_size: int = 1           # questions per LLM call (1 = safest for free-tier Groq)
+    quiz_temperature: float = 0.5      # higher = more creative/diverse; 70B keeps JSON valid at 0.5
+    quiz_dedup_threshold: float = 0.7  # TF-IDF cosine similarity above this = reject as duplicate
 
     # Database (PostgreSQL via asyncpg, or SQLite for tests)
     database_url: str = "postgresql+asyncpg://learnloop:learnloop@localhost:5432/learnloop"

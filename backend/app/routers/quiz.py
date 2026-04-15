@@ -16,14 +16,11 @@ from app.models import (
 )
 from app.config import settings
 from app.database import get_db
-from app.services.quiz_service import quiz_service
+from app.services.quiz_service import quiz_service, _is_near_duplicate, extract_topic_keywords
 from app.services.document_service import document_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
-
-
-@router.post("/generate", response_model=QuizGenerateResponse)
 async def generate_quiz(
     request: QuizGenerateRequest,
     db: AsyncSession | None = Depends(get_db),
@@ -153,7 +150,17 @@ async def generate_quiz_stream(
                 logger.info("SSE client disconnected before batch %d", i)
                 return
 
-            batch = await quiz_service._generate_batch(content, source_type, size, types_list, i)
+            # Extract seen topics from already-generated questions for diversity
+            seen_topics = []
+            for q in all_questions:
+                keywords = extract_topic_keywords(q["question"])
+                seen_topics.extend(keywords)
+            # Keep only recent unique topics (limit to 12 for prompt size)
+            seen_topics = list(dict.fromkeys(seen_topics))[:12]
+
+            batch = await quiz_service._generate_batch(
+                content, source_type, size, types_list, i, seen_topics=seen_topics
+            )
 
             if not batch:
                 yield f"data: {json.dumps({'type': 'error', 'message': f'Batch {i} returned no questions', 'batch': i})}\n\n"
@@ -161,10 +168,13 @@ async def generate_quiz_stream(
 
             for q in batch:
                 key = q["question"].strip().lower()
+                # Exact-match check first (fast)
                 if key and key not in seen_questions:
-                    seen_questions.add(key)
-                    all_questions.append(q)
-                    yield f"data: {json.dumps({'type': 'question', 'question': q, 'index': len(all_questions) - 1})}\n\n"
+                    # TF-IDF near-duplicate check (comprehensive but slower)
+                    if not _is_near_duplicate(q, all_questions, threshold=settings.quiz_dedup_threshold):
+                        seen_questions.add(key)
+                        all_questions.append(q)
+                        yield f"data: {json.dumps({'type': 'question', 'question': q, 'index': len(all_questions) - 1})}\n\n"
 
         if not all_questions:
             provider = settings.llm_provider.upper()

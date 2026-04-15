@@ -14,6 +14,8 @@ TEXT:
 
 Generate a mix of question types as specified: {question_types_description}
 
+{diversity_directive}
+
 For each question, provide:
 - A clear, specific question
 - The correct answer
@@ -44,6 +46,8 @@ TOPIC_QUESTION_USER = """Generate {num_questions} quiz questions about the topic
 
 Generate a mix: {question_types_description}
 
+{diversity_directive}
+
 Cover different aspects and subtopics within "{topic}".
 Range difficulty from easy to hard.
 
@@ -57,3 +61,31 @@ Each element:
   "explanation": "why this is correct",
   "difficulty": "easy" | "medium" | "hard"
 }}"""
+
+
+# Aspects cycled across batches to force coverage breadth
+QUESTION_ASPECTS = [
+    "definition/terminology",
+    "application/use-case",
+    "comparison/contrast",
+    "cause-and-effect",
+    "analysis/evaluation",
+]
+
+
+def build_diversity_directive(batch_index: int, seen_topics: list[str] | None = None) -> str:
+    """Construct a per-batch diversity directive.
+
+    - Rotates through QUESTION_ASPECTS to force breadth across batches.
+    - If seen_topics is non-empty, tells the model to avoid repeating them.
+    """
+    parts: list[str] = []
+    aspect = QUESTION_ASPECTS[batch_index % len(QUESTION_ASPECTS)]
+    parts.append(f"Focus this batch on questions that test {aspect}.")
+    if seen_topics:
+        # Truncate long lists to stay within a reasonable prompt size
+        topic_list = ", ".join(seen_topics[:12])
+        parts.append(
+            f"Avoid repeating these concepts already covered: {topic_list}."
+        )
+    return " ".join(parts)

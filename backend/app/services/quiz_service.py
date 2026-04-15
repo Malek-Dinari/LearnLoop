@@ -13,12 +13,21 @@ from app.prompts.question_gen import (
     DOCUMENT_QUESTION_USER,
     TOPIC_QUESTION_SYSTEM,
     TOPIC_QUESTION_USER,
+    build_diversity_directive,
 )
 from app.prompts.grading import GRADING_SYSTEM, GRADING_USER, SUMMARY_SYSTEM, SUMMARY_USER
 from app.services.llm_service import llm_service, truncate_prompt
 from app.services.cache_service import cache, make_cache_key
 
 logger = logging.getLogger(__name__)
+
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    HAS_TFIDF = True
+except ImportError:
+    HAS_TFIDF = False
+    logger.warning("scikit-learn not available; TF-IDF dedup disabled")
 
 
 def _question_types_description(types: list[str]) -> str:
@@ -28,6 +37,69 @@ def _question_types_description(types: list[str]) -> str:
         "short_answer": "Short Answer",
     }
     return ", ".join(mapping.get(t, t) for t in types)
+
+
+def extract_topic_keywords(question_text: str, num_words: int = 5) -> list[str]:
+    """Extract key noun phrases from a question using simple heuristics.
+    
+    - Capitalized words, words > 5 chars, or domain keywords
+    - Returns up to num_words tokens
+    """
+    if not question_text:
+        return []
+    
+    tokens = question_text.split()
+    keywords = []
+    
+    for token in tokens:
+        # Remove punctuation
+        clean = token.translate(str.maketrans('', '', '?,.:;!-'))
+        if not clean:
+            continue
+        
+        # Heuristic: capitalized, long (> 5 chars), or all-caps
+        if clean[0].isupper() or len(clean) > 5 or clean.isupper():
+            keywords.append(clean.lower())
+        
+        if len(keywords) >= num_words:
+            break
+    
+    return keywords
+
+
+def _is_near_duplicate(
+    new_question: dict,
+    existing_questions: list[dict],
+    threshold: float = 0.7,
+) -> bool:
+    """Check if new_question is a near-duplicate of any existing question.
+    
+    Uses TF-IDF cosine similarity on question text + correct answer.
+    Returns True if any similarity >= threshold.
+    
+    If scikit-learn is unavailable, falls back to exact-match only.
+    """
+    if not HAS_TFIDF or not existing_questions:
+        return False
+    
+    new_text = (new_question.get("question", "") + " " + 
+                new_question.get("correct_answer", "")).lower()
+    
+    corpus = [new_text]
+    for q in existing_questions:
+        existing_text = (q.get("question", "") + " " + 
+                        q.get("correct_answer", "")).lower()
+        corpus.append(existing_text)
+    
+    try:
+        vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(2, 3), lowercase=True)
+        tfidf_matrix = vectorizer.fit_transform(corpus)
+        # Similarity between new (index 0) and all existing (indices 1+)
+        similarities = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1:])[0]
+        return float(max(similarities)) >= threshold
+    except Exception as e:
+        logger.warning(f"TF-IDF dedup failed: {e}; falling back to no dedup")
+        return False
 
 
 def _normalize_question(q: dict, source_type: str, content: str) -> dict:
@@ -68,9 +140,11 @@ class QuizService:
         batch_size: int,
         question_types: list[str],
         batch_index: int,
+        seen_topics: list[str] | None = None,
     ) -> list[dict]:
         """Generate a single batch of questions. Returns [] on failure."""
         types_desc = _question_types_description(question_types)
+        diversity = build_diversity_directive(batch_index, seen_topics)
 
         try:
             if source_type == "topic":
@@ -80,6 +154,7 @@ class QuizService:
                     num_questions=batch_size,
                     topic=safe_content,
                     question_types_description=types_desc,
+                    diversity_directive=diversity,
                 )
             else:
                 system = DOCUMENT_QUESTION_SYSTEM
@@ -88,6 +163,7 @@ class QuizService:
                     num_questions=batch_size,
                     content=safe_content,
                     question_types_description=types_desc,
+                    diversity_directive=diversity,
                 )
 
             # Scale output tokens with batch size.
@@ -95,7 +171,7 @@ class QuizService:
             # = ~800-1000 tokens. Use 1500 minimum + 800 per extra question beyond the first.
             batch_num_predict = max(1500, 700 + batch_size * 800)
             raw = await llm_service.generate_json(
-                user, system, temperature=0.3, num_predict=batch_num_predict
+                user, system, temperature=settings.quiz_temperature, num_predict=batch_num_predict
             )
 
             # Unwrap if the model returned {"questions": [...]} or any other dict-wrapping
