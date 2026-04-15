@@ -228,16 +228,25 @@ Tests run entirely without external services — LLM calls are mocked, the DB fi
 - [x] Structured JSON logging + request ID middleware
 - [x] CI pipeline (GitHub Actions)
 - [x] Full test suite — unit + DB integration, no external services required
+- [x] **Phase A: Question Quality & Diversity**
+  - [x] Configurable temperature (0.5) for more creative question generation
+  - [x] Aspect rotation across batches (definition → application → comparison → cause-effect → analysis)
+  - [x] Seen-concepts injection to avoid repetition in multi-batch runs
+  - [x] TF-IDF semantic dedup (scikit-learn) to reject near-duplicate questions
+  - [x] Extract topic keywords from questions for diversity tracking
+  - [x] Comprehensive test suite (`test_quality.py`) with 10+ tests
 
 ### What's Next
 
-- [ ] **User accounts** — registration, login, and session management
-- [ ] **Flashcard mode** — generate and review flashcards from documents or quiz results
-- [ ] **Spaced repetition** — schedule reviews based on performance (SM-2 algorithm)
-- [ ] **Progress tracking** — mastery scores and learning analytics per topic
-- [ ] **Results export** — download quiz results and feedback as PDF
-- [ ] **Broader document support** — DOCX, PPTX, and other formats
-- [ ] **Semantic search** — find relevant content across uploaded documents
+- [ ] **Phase B: Flashcards v2** — flashcards tied to quiz questions with priority for missed questions
+- [ ] **Phase C: Text-to-Speech (TTS)** — browser Web Speech API for question playback; future Kokoro integration
+- [ ] **Phase D: User Authentication** — JWT-based user accounts with optional authentication
+- [ ] **Phase E: Expert-in-the-Loop** — expert corrections improve LLM prompts via few-shot injection
+- [ ] User accounts — registration, login, and session management
+- [ ] Results export — download quiz results and feedback as PDF
+- [ ] Spaced repetition — schedule reviews based on performance (SM-2 algorithm)
+- [ ] Progress tracking — mastery scores and learning analytics per topic
+- [ ] Semantic search — find relevant content across uploaded documents
 
 ---
 
