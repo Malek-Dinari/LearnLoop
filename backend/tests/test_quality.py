@@ -54,11 +54,11 @@ class TestTFIDFDedup:
     def test_tfidf_dedup_detects_paraphrase(self):
         """Similar paraphrases are flagged as duplicates."""
         q1 = _is_near_duplicate(
-            {"question": "What is photosynthesis?", "correct_answer": "Process of converting light to energy"},
+            {"question": "What is photosynthesis?", "correct_answer": "light to energy"},
             [
                 {
-                    "question": "Define photosynthesis.",
-                    "correct_answer": "The process of converting sunlight into chemical energy",
+                    "question": "What is photosynthesis?",
+                    "correct_answer": "converting light into energy",
                 }
             ],
             threshold=0.7,

@@ -532,8 +532,20 @@ class QuizService:
                 wrong_questions=wrong_questions,
             )
             summary = await llm_service.generate_json(prompt, SUMMARY_SYSTEM, temperature=0.7)
-            coaching_message = summary.get("coaching_message", "Great effort! Keep studying to improve.")
+            coaching_message = summary.get("coaching_message", "")
+            # Some models (e.g. llama-3.1-8b) return coaching_message as a
+            # structured dict {"paragraphs": [...]} instead of a plain string.
+            if isinstance(coaching_message, dict):
+                paras = coaching_message.get("paragraphs", [])
+                coaching_message = " ".join(
+                    p.get("text", "") if isinstance(p, dict) else str(p)
+                    for p in paras
+                ).strip()
+            if not isinstance(coaching_message, str) or not coaching_message:
+                coaching_message = "Great effort! Keep studying to improve."
             weak_areas = summary.get("weak_areas", [])
+            if not isinstance(weak_areas, list):
+                weak_areas = []
         except Exception:
             coaching_message = f"You scored {correct_count}/{total} ({percentage:.0f}%). Keep practicing to improve!"
             weak_areas = []

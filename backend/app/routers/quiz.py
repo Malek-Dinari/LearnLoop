@@ -21,6 +21,9 @@ from app.services.document_service import document_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
+
+
+@router.post("/generate", response_model=QuizGenerateResponse)
 async def generate_quiz(
     request: QuizGenerateRequest,
     db: AsyncSession | None = Depends(get_db),

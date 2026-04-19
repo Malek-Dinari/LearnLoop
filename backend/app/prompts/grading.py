@@ -34,15 +34,15 @@ Performance by question type:
 Questions they got wrong:
 {wrong_questions}
 
-Provide a personalized coaching message (2-3 paragraphs) that:
+Provide a personalized coaching message that:
 1. Acknowledges what they did well
 2. Identifies specific areas to improve
 3. Gives concrete study suggestions
 
 Also list 2-4 specific weak areas/topics they should review.
 
-Respond with ONLY a JSON object:
+Respond with ONLY a JSON object. coaching_message MUST be a plain string (not an object, not paragraphs):
 {{
-  "coaching_message": "your coaching message here",
+  "coaching_message": "Your full coaching message as a single plain string here.",
   "weak_areas": ["area 1", "area 2"]
 }}"""
