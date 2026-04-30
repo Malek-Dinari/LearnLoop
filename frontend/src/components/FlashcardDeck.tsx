@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Flashcard } from "@/lib/types";
-import { ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, X, Volume2, VolumeX } from "lucide-react";
 import clsx from "clsx";
+import { useTTS } from "@/hooks/useTTS";
 
 interface Props {
   cards: Flashcard[];
@@ -13,10 +14,23 @@ interface Props {
 export default function FlashcardDeck({ cards, onClose }: Props) {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const { speak, stop, isSpeaking, isSupported } = useTTS();
+
+  // Stop speech when card changes
+  useEffect(() => { stop(); }, [index]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (cards.length === 0) return null;
 
   const card = cards[index];
+
+  // Build a stable question_id → quiz-question-number map (1-based, preserving first appearance)
+  const qIndexMap = cards.reduce<Record<string, number>>((acc, c, i) => {
+    if (c.question_id && !(c.question_id in acc)) {
+      acc[c.question_id] = Object.keys(acc).length + 1;
+    }
+    return acc;
+  }, {});
+  const questionLabel = card.question_id ? `From Q${qIndexMap[card.question_id]}` : null;
 
   const prev = () => {
     setIndex((i) => Math.max(0, i - 1));
@@ -52,15 +66,35 @@ export default function FlashcardDeck({ cards, onClose }: Props) {
           </button>
         </div>
 
-        {/* Card counter + category */}
+        {/* Card counter + category + question link badge */}
         <div className="flex items-center justify-between px-6 pt-4 text-sm">
-          <span className="px-3 py-1 bg-teal/10 text-teal rounded-full font-medium text-xs">
-            {card.category}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-teal/10 text-teal rounded-full font-medium text-xs">
+              {card.category}
+            </span>
+            {questionLabel && (
+              <span className="px-2 py-1 bg-amber-50 text-amber-600 border border-amber-200 rounded-full text-xs font-medium">
+                {questionLabel}
+              </span>
+            )}
+          </div>
           <span className="text-gray-400">
             {index + 1} / {cards.length}
           </span>
         </div>
+
+        {/* TTS speaker button */}
+        {isSupported && (
+          <div className="flex justify-end px-6">
+            <button
+              onClick={() => isSpeaking ? stop() : speak(flipped ? card.back : card.front)}
+              title={isSpeaking ? "Stop" : "Read aloud"}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-teal hover:bg-teal/10 transition-colors"
+            >
+              {isSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+          </div>
+        )}
 
         {/* Flip card */}
         <div className="px-6 py-6">

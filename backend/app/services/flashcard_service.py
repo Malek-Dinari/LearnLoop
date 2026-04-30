@@ -18,15 +18,20 @@ def _normalize_card(card: dict) -> dict:
         "front": str(card.get("front") or "").strip(),
         "back": str(card.get("back") or "").strip(),
         "category": str(card.get("category") or "General").strip(),
+        "question_id": card.get("question_id") or None,
     }
 
 
-def _format_question(q: dict) -> str:
+def _format_question_with_id(q: dict) -> str:
+    """Format a question for the prompt, including its ID for the model to echo back."""
+    is_correct = q.get("is_correct", True)
+    marker = "✗ WRONG" if not is_correct else "✓ correct"
     ans = q.get("user_answer", "") or ""
     correct = q.get("correct_answer", "") or ""
-    is_correct = q.get("is_correct", True)
-    marker = "✓" if is_correct else "✗"
-    return f"{marker} Q: {q.get('question', '')} | Correct: {correct} | Student answered: {ans}"
+    return (
+        f"[id={q.get('id', '')}] [{marker}] "
+        f"Q: {q.get('question', '')} | Correct: {correct} | Student: {ans}"
+    )
 
 
 class FlashcardService:
@@ -37,9 +42,20 @@ class FlashcardService:
     ) -> list[dict]:
         import hashlib, json
 
+        # Sort: wrong answers first (they need the most study)
+        sorted_qs = sorted(
+            questions_with_results,
+            key=lambda q: (1 if q.get("is_correct", True) else 0, q.get("difficulty", "medium")),
+        )
+
+        # Cap num_cards to the number of questions (can't make more cards than questions)
+        num_cards = min(num_cards, len(sorted_qs))
+        if num_cards == 0:
+            return []
+
         cache_key = make_cache_key(
             "flashcards_quiz",
-            q_hash=hashlib.sha256(json.dumps(questions_with_results, sort_keys=True).encode()).hexdigest()[:16],
+            q_hash=hashlib.sha256(json.dumps(sorted_qs, sort_keys=True).encode()).hexdigest()[:16],
             num_cards=num_cards,
         )
         cached = await cache.get(cache_key)
@@ -47,14 +63,13 @@ class FlashcardService:
             logger.info("Flashcard cache HIT (quiz)")
             return cached
 
-        wrong = [q for q in questions_with_results if not q.get("is_correct", True)]
-        all_lines = "\n".join(_format_question(q) for q in questions_with_results)
-        wrong_lines = "\n".join(_format_question(q) for q in wrong) or "(none — all correct!)"
+        questions_text = "\n".join(
+            _format_question_with_id(q) for q in sorted_qs[:num_cards]
+        )
 
         prompt = FLASHCARD_FROM_QUIZ_USER.format(
             num_cards=num_cards,
-            wrong_questions=truncate_prompt(wrong_lines, max_chars=3000),
-            all_questions=truncate_prompt(all_lines, max_chars=3000),
+            questions_with_ids=truncate_prompt(questions_text, max_chars=5000),
         )
 
         cards = await self._call_llm(prompt, num_cards)

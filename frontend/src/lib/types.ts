@@ -72,6 +72,7 @@ export interface Flashcard {
   front: string;
   back: string;
   category: string;
+  question_id?: string | null;
 }
 
 // SSE event types from GET /api/quiz/generate/stream

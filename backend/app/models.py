@@ -85,6 +85,7 @@ class Flashcard(BaseModel):
     front: str
     back: str
     category: str
+    question_id: Optional[str] = None
 
 
 class FlashcardGenerateResponse(BaseModel):

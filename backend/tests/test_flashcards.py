@@ -6,9 +6,17 @@ from httpx import AsyncClient, ASGITransport
 
 from app.main import app
 from app.services.flashcard_service import FlashcardService, _normalize_card
+from app.services.cache_service import cache
 
 
-# ── Unit tests ─────────────────────────────────────────────────────────────
+# ── Fixtures ────────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+async def clear_cache():
+    """Clear the in-memory cache before every test to prevent cross-test cache hits."""
+    await cache.clear()
+    yield
+
 
 @pytest.fixture
 def svc():
@@ -138,3 +146,56 @@ async def test_flashcard_endpoint_invalid_source(client):
         json={"source_type": "invalid"},
     )
     assert resp.status_code == 422  # Pydantic validation
+
+
+# ── Phase B: question-linked flashcard tests ────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_flashcards_cap_at_question_count(svc):
+    """Requesting more cards than questions → capped at question count."""
+    with patch(
+        "app.services.flashcard_service.llm_service.generate_json",
+        new_callable=AsyncMock,
+        return_value=MOCK_CARDS[:2],
+    ):
+        cards = await svc.generate_from_quiz(SAMPLE_QUESTIONS, num_cards=20)
+        # 2 questions → max 2 cards regardless of num_cards=20
+        assert len(cards) <= len(SAMPLE_QUESTIONS)
+
+
+@pytest.mark.asyncio
+async def test_flashcard_preserves_question_id(svc):
+    """LLM response that includes question_id → normalized card keeps it."""
+    cards_with_ids = [
+        {"front": "Photosynthesis?", "back": "Light→chemical energy", "category": "Bio", "question_id": "q1"},
+    ]
+    with patch(
+        "app.services.flashcard_service.llm_service.generate_json",
+        new_callable=AsyncMock,
+        return_value=cards_with_ids,
+    ):
+        cards = await svc.generate_from_quiz(SAMPLE_QUESTIONS, num_cards=2)
+        assert len(cards) >= 1
+        assert cards[0]["question_id"] == "q1"
+
+
+@pytest.mark.asyncio
+async def test_flashcards_prioritize_wrong(svc):
+    """Wrong answers appear first in the prompt sent to the LLM."""
+    captured_prompt: list[str] = []
+
+    async def mock_generate_json(prompt: str, *args, **kwargs):
+        captured_prompt.append(prompt)
+        return MOCK_CARDS
+
+    with patch(
+        "app.services.flashcard_service.llm_service.generate_json",
+        new_callable=AsyncMock,
+        side_effect=mock_generate_json,
+    ):
+        await svc.generate_from_quiz(SAMPLE_QUESTIONS, num_cards=2)
+
+    assert captured_prompt, "LLM was not called"
+    prompt = captured_prompt[0]
+    # The wrong question (q1, marked ✗ WRONG) should appear before the correct one (q2)
+    assert prompt.index("q1") < prompt.index("q2")

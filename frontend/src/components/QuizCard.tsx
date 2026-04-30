@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Question, AnswerResponse } from "@/lib/types";
-import { CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { CheckCircle, XCircle, ArrowRight, Volume2, VolumeX } from "lucide-react";
 import clsx from "clsx";
+import { useTTS } from "@/hooks/useTTS";
 
 interface Props {
   question: Question;
@@ -17,6 +18,16 @@ export default function QuizCard({ question, onSubmit, feedback, onNext, isLast 
   const [selected, setSelected] = useState("");
   const [textAnswer, setTextAnswer] = useState("");
   const submitted = feedback !== null;
+  const { speak, stop, isSpeaking, isSupported } = useTTS();
+
+  // Stop speaking when question changes
+  useEffect(() => { stop(); }, [question.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSpeak = () => {
+    if (isSpeaking) { stop(); return; }
+    const optionsText = question.options ? " Options: " + question.options.join(", ") : "";
+    speak(question.question + optionsText);
+  };
 
   const handleSubmit = () => {
     if (question.type === "short_answer") {
@@ -47,9 +58,20 @@ export default function QuizCard({ question, onSubmit, feedback, onNext, isLast 
         </span>
       </div>
 
-      <h2 className="text-xl font-semibold text-navy leading-relaxed">
-        {question.question}
-      </h2>
+      <div className="flex items-start gap-3">
+        <h2 className="flex-1 text-xl font-semibold text-navy leading-relaxed">
+          {question.question}
+        </h2>
+        {isSupported && (
+          <button
+            onClick={handleSpeak}
+            title={isSpeaking ? "Stop reading" : "Read aloud"}
+            className="flex-shrink-0 mt-1 p-1.5 rounded-lg text-gray-400 hover:text-teal hover:bg-teal/10 transition-colors"
+          >
+            {isSpeaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </button>
+        )}
+      </div>
 
       {/* Options */}
       {question.type !== "short_answer" && question.options && (
