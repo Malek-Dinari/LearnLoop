@@ -238,9 +238,9 @@ Tests run entirely without external services — LLM calls are mocked, the DB fi
 
 ### What's Next
 
-- [ ] **Phase B: Flashcards v2** — flashcards tied to quiz questions with priority for missed questions
-- [ ] **Phase C: Text-to-Speech (TTS)** — browser Web Speech API for question playback; future Kokoro integration
-- [ ] **Phase D: User Authentication** — JWT-based user accounts with optional authentication
+- [x] **Phase B: Flashcards v2** — flashcards tied to quiz questions with priority for missed questions
+- [x] **Phase C: Text-to-Speech (TTS)** — browser Web Speech API for question playback; future Kokoro integration
+- [ ] **Phase D: User Authentication** — JWT-based user accounts with optional authentication  # TODO
 - [ ] **Phase E: Expert-in-the-Loop** — expert corrections improve LLM prompts via few-shot injection
 - [ ] User accounts — registration, login, and session management
 - [ ] Results export — download quiz results and feedback as PDF
