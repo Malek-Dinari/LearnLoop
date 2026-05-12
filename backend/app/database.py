@@ -17,14 +17,18 @@ class Base(DeclarativeBase):
 
 
 # Engine is created lazily — only connects when USE_DATABASE=true
-engine = create_async_engine(
-    settings.async_database_url,
-    echo=settings.db_echo,
-    pool_size=5,
-    max_overflow=10,
-    # asyncpg-specific: pre-ping validates connections before use
-    pool_pre_ping=True,
-)
+# SQLite (dev) doesn't support pool_size/max_overflow; Postgres (prod) does.
+_url = settings.async_database_url
+if _url.startswith("sqlite"):
+    engine = create_async_engine(_url, echo=settings.db_echo)
+else:
+    engine = create_async_engine(
+        _url,
+        echo=settings.db_echo,
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+    )
 
 async_session_factory = async_sessionmaker(
     engine,

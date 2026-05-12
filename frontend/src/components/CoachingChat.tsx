@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Question, ChatMessage } from "@/lib/types";
-import { X, Send, Loader2 } from "lucide-react";
+import { X, Send, Loader2, Volume2, VolumeX } from "lucide-react";
 import clsx from "clsx";
+import { useTTS } from "@/hooks/useTTS";
 
 interface Props {
   question: Question;
@@ -24,6 +25,22 @@ export default function CoachingChat({
 }: Props) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useTTS();
+  const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    return () => stop();
+  }, [stop]);
+
+  const toggleSpeak = (idx: number, text: string) => {
+    if (speakingIdx === idx && isSpeaking) {
+      stop();
+      setSpeakingIdx(null);
+    } else {
+      speak(text);
+      setSpeakingIdx(idx);
+    }
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,12 +90,21 @@ export default function CoachingChat({
               })}
             >
               <div
-                className={clsx("max-w-[80%] px-4 py-3 rounded-2xl text-sm", {
+                className={clsx("max-w-[80%] px-4 py-3 rounded-2xl text-sm relative", {
                   "bg-navy text-white rounded-br-md": msg.role === "user",
                   "bg-gray-100 text-navy rounded-bl-md": msg.role === "assistant",
                 })}
               >
                 {msg.content}
+                {msg.role === "assistant" && ttsSupported && (
+                  <button
+                    onClick={() => toggleSpeak(i, msg.content)}
+                    className="ml-2 align-middle text-gray-500 hover:text-navy"
+                    aria-label={speakingIdx === i && isSpeaking ? "Stop reading" : "Read aloud"}
+                  >
+                    {speakingIdx === i && isSpeaking ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                  </button>
+                )}
               </div>
             </div>
           ))}

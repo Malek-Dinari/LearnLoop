@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "@/lib/types";
-import { MessageCircle, X, Send, Loader2, GraduationCap } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, GraduationCap, Volume2, VolumeX } from "lucide-react";
 import clsx from "clsx";
+import { useTTS } from "@/hooks/useTTS";
 
 interface Props {
   messages: ChatMessage[];
@@ -16,6 +17,22 @@ export default function StudyChat({ messages, loading, onSend, quizActive }: Pro
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useTTS();
+  const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    return () => stop();
+  }, [stop]);
+
+  const toggleSpeak = (idx: number, text: string) => {
+    if (speakingIdx === idx && isSpeaking) {
+      stop();
+      setSpeakingIdx(null);
+    } else {
+      speak(text);
+      setSpeakingIdx(idx);
+    }
+  };
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -84,6 +101,15 @@ export default function StudyChat({ messages, loading, onSend, quizActive }: Pro
                   })}
                 >
                   {msg.content}
+                  {msg.role === "assistant" && ttsSupported && (
+                    <button
+                      onClick={() => toggleSpeak(i, msg.content)}
+                      className="ml-2 align-middle text-gray-500 hover:text-navy"
+                      aria-label={speakingIdx === i && isSpeaking ? "Stop reading" : "Read aloud"}
+                    >
+                      {speakingIdx === i && isSpeaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

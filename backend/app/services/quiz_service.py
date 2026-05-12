@@ -117,6 +117,7 @@ def _normalize_question(q: dict, source_type: str, content: str) -> dict:
         "explanation": q.get("explanation", ""),
         "source_chunk": content[:500] if source_type == "document" else None,
         "difficulty": q.get("difficulty", "medium"),
+        "expert_verified": bool(q.get("expert_verified", False)),
     }
 
     if q_type == "true_false" and not question["options"]:
@@ -141,14 +142,37 @@ class QuizService:
         question_types: list[str],
         batch_index: int,
         seen_topics: list[str] | None = None,
+        db: "AsyncSession | None" = None,
+        topic_hint: str | None = None,
     ) -> list[dict]:
         """Generate a single batch of questions. Returns [] on failure."""
         types_desc = _question_types_description(question_types)
         diversity = build_diversity_directive(batch_index, seen_topics)
 
+        # Expert-in-the-Loop: inject approved corrections as few-shot examples.
+        expert_block = ""
+        had_expert_examples = False
+        if db is not None and settings.eitl_enabled:
+            try:
+                from app.services.expert_service import (
+                    build_few_shot_block,
+                    fetch_relevant_corrections,
+                )
+                corrections = await fetch_relevant_corrections(
+                    db,
+                    content,
+                    source_type,
+                    topic_hint or (content if source_type == "topic" else None),
+                    limit=settings.eitl_max_examples,
+                )
+                expert_block = build_few_shot_block(corrections)
+                had_expert_examples = bool(expert_block)
+            except Exception as exc:
+                logger.warning(f"EITL injection failed (non-fatal): {exc}")
+
         try:
             if source_type == "topic":
-                system = TOPIC_QUESTION_SYSTEM
+                system = TOPIC_QUESTION_SYSTEM + expert_block
                 safe_content = truncate_prompt(content, max_chars=500).replace("{", "{{").replace("}", "}}")
                 user = TOPIC_QUESTION_USER.format(
                     num_questions=batch_size,
@@ -157,7 +181,7 @@ class QuizService:
                     diversity_directive=diversity,
                 )
             else:
-                system = DOCUMENT_QUESTION_SYSTEM
+                system = DOCUMENT_QUESTION_SYSTEM + expert_block
                 safe_content = truncate_prompt(content).replace("{", "{{").replace("}", "}}")
                 user = DOCUMENT_QUESTION_USER.format(
                     num_questions=batch_size,
@@ -207,6 +231,9 @@ class QuizService:
                     f"non-dict items from LLM response"
                 )
             questions = [_normalize_question(q, source_type, content) for q in dict_items]
+            if had_expert_examples:
+                for q in questions:
+                    q["expert_verified"] = True
             logger.info(f"Batch {batch_index}: generated {len(questions)} questions")
             return questions
 
@@ -223,6 +250,8 @@ class QuizService:
         source_type: str,
         num_questions: int = 10,
         question_types: list[str] | None = None,
+        db: "AsyncSession | None" = None,
+        topic_hint: str | None = None,
     ) -> list[dict]:
         if question_types is None:
             question_types = ["mcq", "true_false", "short_answer"]
@@ -258,7 +287,10 @@ class QuizService:
         # safe but no faster. Set OLLAMA_NUM_PARALLEL=2 or 3 in your shell before
         # `ollama serve` to actually parallelize (qwen3:1.7b fits 2-3x in 4GB VRAM).
         results = await asyncio.gather(
-            *[self._generate_batch(content, source_type, size, question_types, i)
+            *[self._generate_batch(
+                content, source_type, size, question_types, i,
+                db=db, topic_hint=topic_hint,
+            )
               for i, size in enumerate(batches)],
             return_exceptions=True,
         )
@@ -275,14 +307,19 @@ class QuizService:
                 f"Check {settings.llm_provider.upper()} connectivity and API key."
             )
 
-        # Deduplicate by question text
+        # Deduplicate: exact-match first, then TF-IDF near-duplicate
         seen: set[str] = set()
         unique: list[dict] = []
+        threshold = settings.quiz_dedup_threshold
         for q in all_questions:
             key = q["question"].strip().lower()
-            if key and key not in seen:
-                seen.add(key)
-                unique.append(q)
+            if not key or key in seen:
+                continue
+            if _is_near_duplicate(q, unique, threshold):
+                logger.debug(f"Rejected near-duplicate question: {key[:60]}")
+                continue
+            seen.add(key)
+            unique.append(q)
 
         final = unique[:num_questions]
 
@@ -305,9 +342,12 @@ class QuizService:
         source_type: str = "topic",
         topic: str | None = None,
         document_id: str | None = None,
+        user_id: str | None = None,
     ) -> str:
         if db is not None:
-            return await self._create_quiz_db(questions, db, source_type, topic, document_id)
+            return await self._create_quiz_db(
+                questions, db, source_type, topic, document_id, user_id
+            )
         return self._create_quiz_memory(questions)
 
     def _create_quiz_memory(self, questions: list[dict]) -> str:
@@ -325,6 +365,7 @@ class QuizService:
         source_type: str,
         topic: str | None,
         document_id: str | None,
+        user_id: str | None = None,
     ) -> str:
         from app.db_models import Quiz, Question as QuestionModel
 
@@ -334,6 +375,7 @@ class QuizService:
             source_type=source_type,
             topic=topic,
             document_id=uuid.UUID(document_id) if document_id else None,
+            user_id=uuid.UUID(user_id) if user_id else None,
         )
         db.add(quiz_row)
         await db.flush()  # get quiz_id into DB without committing
@@ -349,6 +391,7 @@ class QuizService:
                 explanation=q.get("explanation", ""),
                 difficulty=q.get("difficulty", "medium"),
                 source_chunk=q.get("source_chunk"),
+                expert_verified=bool(q.get("expert_verified", False)),
             ))
         # Session commits in the router's get_db() dependency
         logger.info(f"Quiz {quiz_id} persisted to DB with {len(questions)} questions")
@@ -398,6 +441,7 @@ class QuizService:
                 "explanation": q.explanation,
                 "difficulty": q.difficulty,
                 "source_chunk": q.source_chunk,
+                "expert_verified": bool(getattr(q, "expert_verified", False)),
             }
             questions_dict[str(q.id)] = q_dict
             if q.answer is not None:

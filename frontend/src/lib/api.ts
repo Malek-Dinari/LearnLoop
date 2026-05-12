@@ -8,16 +8,16 @@ import {
   SSEEvent,
   Flashcard,
 } from "./types";
+import { authFetch, getToken } from "./auth";
 
 // Use relative /api so requests go through the Next.js dev proxy (same-origin, no CORS).
 // In production, set NEXT_PUBLIC_API_URL=https://your-backend.com/api
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  const headers = new Headers(options?.headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  const res = await authFetch(`${API_BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`API error ${res.status}: ${body}`);
@@ -32,7 +32,7 @@ export async function healthCheck() {
 export async function uploadDocument(file: File): Promise<DocumentUploadResponse> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${API_BASE}/documents/upload`, {
+  const res = await authFetch(`${API_BASE}/documents/upload`, {
     method: "POST",
     body: formData,
   });
@@ -81,6 +81,8 @@ export function generateQuizStream(
   });
   if (params.topic) qs.set("topic", params.topic.slice(0, 500));
   if (params.document_id) qs.set("document_id", params.document_id);
+  const token = getToken();
+  if (token) qs.set("access_token", token);
 
   const url = `${API_BASE}/quiz/generate/stream?${qs.toString()}`;
   const es = new EventSource(url);

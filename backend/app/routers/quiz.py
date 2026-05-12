@@ -16,6 +16,7 @@ from app.models import (
 )
 from app.config import settings
 from app.database import get_db
+from app.deps import get_current_user_optional
 from app.services.quiz_service import quiz_service, _is_near_duplicate, extract_topic_keywords
 from app.services.document_service import document_service
 
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 async def generate_quiz(
     request: QuizGenerateRequest,
     db: AsyncSession | None = Depends(get_db),
+    user: dict | None = Depends(get_current_user_optional),
 ):
     if request.source_type == "topic":
         if not request.topic:
@@ -46,6 +48,8 @@ async def generate_quiz(
             source_type=request.source_type,
             num_questions=request.num_questions,
             question_types=request.question_types,
+            db=db,
+            topic_hint=request.topic,
         )
     except Exception as e:
         logger.exception("Quiz generation failed")
@@ -57,6 +61,7 @@ async def generate_quiz(
         source_type=request.source_type,
         topic=request.topic,
         document_id=request.document_id,
+        user_id=user["id"] if user else None,
     )
 
     return QuizGenerateResponse(
@@ -74,6 +79,7 @@ async def generate_quiz_stream(
     num_questions: int = 10,
     question_types: str = "mcq,true_false,short_answer",
     db: AsyncSession | None = Depends(get_db),
+    user: dict | None = Depends(get_current_user_optional),
 ):
     """
     SSE endpoint for progressive quiz generation.
@@ -161,9 +167,25 @@ async def generate_quiz_stream(
             # Keep only recent unique topics (limit to 12 for prompt size)
             seen_topics = list(dict.fromkeys(seen_topics))[:12]
 
-            batch = await quiz_service._generate_batch(
-                content, source_type, size, types_list, i, seen_topics=seen_topics
-            )
+            # Open a short-lived session per batch so EITL injection can
+            # consult the DB without holding a connection across the full
+            # SSE generator window.
+            batch_db = None
+            batch_db_cm = None
+            if settings.use_database and settings.eitl_enabled:
+                from app.database import async_session_factory
+                batch_db_cm = async_session_factory()
+                batch_db = await batch_db_cm.__aenter__()
+            try:
+                batch = await quiz_service._generate_batch(
+                    content, source_type, size, types_list, i,
+                    seen_topics=seen_topics,
+                    db=batch_db,
+                    topic_hint=topic if source_type == "topic" else None,
+                )
+            finally:
+                if batch_db_cm is not None:
+                    await batch_db_cm.__aexit__(None, None, None)
 
             if not batch:
                 yield f"data: {json.dumps({'type': 'error', 'message': f'Batch {i} returned no questions', 'batch': i})}\n\n"
@@ -191,7 +213,8 @@ async def generate_quiz_stream(
             try:
                 async with async_session_factory() as session:
                     quiz_id = await quiz_service.create_quiz(
-                        all_questions, session, source_type, topic, document_id
+                        all_questions, session, source_type, topic, document_id,
+                        user_id=user["id"] if user else None,
                     )
                     await session.commit()
             except Exception as exc:

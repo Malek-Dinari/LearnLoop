@@ -7,6 +7,7 @@ export interface Question {
   explanation: string;
   source_chunk: string | null;
   difficulty: "easy" | "medium" | "hard";
+  expert_verified?: boolean;
 }
 
 export interface QuizGenerateRequest {

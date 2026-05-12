@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 
@@ -31,6 +31,7 @@ class Question(BaseModel):
     explanation: str
     source_chunk: Optional[str] = None
     difficulty: str
+    expert_verified: bool = False
 
 
 class QuizGenerateResponse(BaseModel):
@@ -103,3 +104,45 @@ class StudyChatRequest(BaseModel):
 
 class StudyChatResponse(BaseModel):
     response: str
+
+
+# ── Auth schemas ────────────────────────────────────────────────────────────
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    role: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# ── Expert-in-the-Loop schemas ──────────────────────────────────────────────
+
+class CorrectionSubmitRequest(BaseModel):
+    original_question: Optional[dict] = None
+    corrected_question: dict
+    topic_tags: list[str] = Field(default_factory=list, max_length=10)
+
+
+class CorrectionResponse(BaseModel):
+    id: str
+    original_question: Optional[dict]
+    corrected_question: dict
+    topic_tags: list[str]
+    expert_id: str
+    approved: bool
+    created_at: str

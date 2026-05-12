@@ -60,6 +60,15 @@ class Settings(BaseSettings):
             return "postgresql+asyncpg://" + url[len("postgresql://"):]
         return url
 
+    # JWT auth
+    jwt_secret: str = "CHANGE-ME-IN-PRODUCTION-min-32-chars-long-please"
+    jwt_algorithm: str = "HS256"
+    jwt_expiry_days: int = 7
+
+    # Expert-in-the-Loop
+    eitl_enabled: bool = True
+    eitl_max_examples: int = 3
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "text"  # "text" for dev, "json" for production

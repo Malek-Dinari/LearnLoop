@@ -26,6 +26,26 @@ from sqlalchemy.types import JSON
 from app.database import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    email: Mapped[str] = mapped_column(
+        String(320), unique=True, nullable=False, index=True
+    )
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="user"
+    )  # user | expert | admin
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+
+    quizzes: Mapped[list["Quiz"]] = relationship(back_populates="user")
+
+
 class Document(Base):
     __tablename__ = "documents"
 
@@ -58,11 +78,15 @@ class Quiz(Base):
     document_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("documents.id"), nullable=True
     )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow
     )
 
     document: Mapped["Document | None"] = relationship(back_populates="quizzes")
+    user: Mapped["User | None"] = relationship(back_populates="quizzes")
     questions: Mapped[list["Question"]] = relationship(
         back_populates="quiz", cascade="all, delete-orphan", order_by="Question.created_at"
     )
@@ -85,6 +109,9 @@ class Question(Base):
     explanation: Mapped[str] = mapped_column(Text, nullable=False, default="")
     difficulty: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")
     source_chunk: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expert_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow
     )
@@ -93,6 +120,28 @@ class Question(Base):
     answer: Mapped["Answer | None"] = relationship(
         back_populates="question", uselist=False, cascade="all, delete-orphan"
     )
+
+
+class ExpertCorrection(Base):
+    __tablename__ = "expert_corrections"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    original_question: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    corrected_question: Mapped[dict] = mapped_column(JSON, nullable=False)
+    topic_tags: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
+    expert_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    approved: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
+
+    expert: Mapped["User"] = relationship()
 
 
 class Answer(Base):

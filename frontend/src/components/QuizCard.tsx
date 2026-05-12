@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Question, AnswerResponse } from "@/lib/types";
-import { CheckCircle, XCircle, ArrowRight, Volume2, VolumeX } from "lucide-react";
+import { CheckCircle, XCircle, ArrowRight, Volume2, VolumeX, BadgeCheck } from "lucide-react";
 import clsx from "clsx";
 import { useTTS } from "@/hooks/useTTS";
 
@@ -46,9 +46,19 @@ export default function QuizCard({ question, onSubmit, feedback, onNext, isLast 
   return (
     <div className="card space-y-6">
       <div className="flex items-center justify-between">
-        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${difficultyColor}`}>
-          {question.difficulty}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${difficultyColor}`}>
+            {question.difficulty}
+          </span>
+          {question.expert_verified && (
+            <span
+              className="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium flex items-center gap-1"
+              title="Generated using expert-approved examples"
+            >
+              <BadgeCheck size={12} /> Expert Verified
+            </span>
+          )}
+        </div>
         <span className="text-xs text-gray-400 uppercase tracking-wide">
           {question.type === "mcq"
             ? "Multiple Choice"

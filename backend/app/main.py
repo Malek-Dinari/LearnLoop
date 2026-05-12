@@ -7,7 +7,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.logging_config import setup_logging
 from app.middleware import RequestIDMiddleware
-from app.routers import documents, quiz, chat, flashcards
+from app.routers import auth, documents, expert, quiz, chat, flashcards
 from app.services.llm_service import llm_service
 from app.services.cache_service import cache
 
@@ -29,16 +29,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(documents.router)
 app.include_router(quiz.router)
 app.include_router(chat.router)
 app.include_router(flashcards.router)
+app.include_router(expert.router)
 
 
 @app.on_event("startup")
 async def startup() -> None:
+    if settings.jwt_secret.startswith("CHANGE-ME"):
+        logger.warning(
+            "JWT_SECRET is set to the default placeholder. "
+            "Set a strong JWT_SECRET (>=32 chars) before deploying to production."
+        )
     if settings.use_database:
-        from app.database import engine
+        from app.database import engine, Base
+        # Ensure ORM models are imported so metadata is populated
+        from app import db_models  # noqa: F401
         try:
             async with engine.connect() as conn:
                 await conn.execute(text("SELECT 1"))
@@ -46,6 +55,12 @@ async def startup() -> None:
         except Exception as exc:
             logger.error("Database connection failed: %s", exc)
             raise RuntimeError(f"Cannot start: database unreachable — {exc}") from exc
+        # Dev convenience: auto-create tables on SQLite so signup/login work
+        # without running alembic. Postgres should still go through migrations.
+        if settings.async_database_url.startswith("sqlite"):
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("SQLite dev DB: ensured tables exist via create_all")
 
 
 @app.on_event("shutdown")
