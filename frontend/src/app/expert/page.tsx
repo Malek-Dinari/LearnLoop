@@ -121,7 +121,7 @@ export default function ExpertPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
       <h1 className="text-3xl font-semibold text-navy">Expert Console</h1>
       <p className="text-sm text-gray-600">
         Submit corrections that future quizzes will reference. Admins approve

@@ -33,16 +33,20 @@ export function getUser(): AuthUser | null {
   }
 }
 
+export const AUTH_CHANGE_EVENT = "learnloop:auth-change";
+
 export function setSession(token: string, user: AuthUser): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(TOKEN_KEY, token);
   window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export function clearSession(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
 }
 
 export function isAuthenticated(): boolean {
